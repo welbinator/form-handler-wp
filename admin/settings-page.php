@@ -50,15 +50,15 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 	<?php // Tab nav. ?>
 	<nav class="fhw-tab-nav">
 		<a href="<?php echo esc_url( admin_url( 'admin.php?page=form-handler-wp&tab=brevo' ) ); ?>"
-		   class="<?php echo 'brevo' === $current_tab ? 'fhw-tab-active' : ''; ?>">
+			class="<?php echo 'brevo' === $current_tab ? 'fhw-tab-active' : ''; ?>">
 			<?php esc_html_e( 'Brevo Settings', 'form-handler-wp' ); ?>
 		</a>
 		<a href="<?php echo esc_url( admin_url( 'admin.php?page=form-handler-wp&tab=forms' ) ); ?>"
-		   class="<?php echo 'forms' === $current_tab ? 'fhw-tab-active' : ''; ?>">
+			class="<?php echo 'forms' === $current_tab ? 'fhw-tab-active' : ''; ?>">
 			<?php esc_html_e( 'Registered Forms', 'form-handler-wp' ); ?>
 		</a>
 		<a href="<?php echo esc_url( admin_url( 'admin.php?page=form-handler-wp&tab=log' ) ); ?>"
-		   class="<?php echo 'log' === $current_tab ? 'fhw-tab-active' : ''; ?>">
+			class="<?php echo 'log' === $current_tab ? 'fhw-tab-active' : ''; ?>">
 			<?php esc_html_e( 'Email Log', 'form-handler-wp' ); ?>
 		</a>
 	</nav>

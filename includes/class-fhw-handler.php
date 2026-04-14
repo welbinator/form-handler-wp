@@ -323,7 +323,7 @@ class FHW_Handler {
 	 * @return true|WP_Error True if under limit, WP_Error if exceeded.
 	 */
 	private function check_rate_limit( $action, $max_per_hr ) {
-		$ip           = $this->get_client_ip();
+		$ip            = $this->get_client_ip();
 		$transient_key = 'fhw_rl_' . md5( $action . '_' . $ip );
 		$count         = (int) get_transient( $transient_key );
 

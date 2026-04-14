@@ -90,11 +90,11 @@ function fhw_generic_handler() {
 /**
  * Intercept wp_mail() and route through Brevo.
  *
- * @param null|bool $return Short-circuit return value.
- * @param array     $atts   wp_mail() arguments.
+ * @param null|bool $short_circuit Short-circuit return value.
+ * @param array     $atts          wp_mail() arguments.
  * @return bool True if sent, false on error.
  */
-function fhw_intercept_wp_mail( $return, $atts ) {
+function fhw_intercept_wp_mail( $short_circuit, $atts ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundBeforeLastUsed
 	$to      = isset( $atts['to'] ) ? $atts['to'] : '';
 	$subject = isset( $atts['subject'] ) ? $atts['subject'] : '';
 	$message = isset( $atts['message'] ) ? $atts['message'] : '';

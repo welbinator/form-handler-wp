@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<ruleset name="Form Handler WP">
+	<description>PHPCS rules for Form Handler WP</description>
+
+	<!-- What to scan -->
+	<file>.</file>
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+	<exclude-pattern>*/node_modules/*</exclude-pattern>
+
+	<!-- Show sniff codes in reports -->
+	<arg value="sp"/>
+	<arg name="colors"/>
+	<arg name="extensions" value="php"/>
+
+	<!-- Use WordPress-Extra (superset of WordPress-Core + WordPress-Docs) -->
+	<rule ref="WordPress-Extra">
+		<!-- We use short array syntax []  — allow it -->
+		<exclude name="Universal.Arrays.DisallowShortArraySyntax"/>
+	</rule>
+
+	<!-- Enforce WordPress doc standards -->
+	<rule ref="WordPress-Docs"/>
+
+	<!-- Set minimum PHP version for compatibility checks -->
+	<config name="minimum_supported_wp_version" value="6.0"/>
+	<config name="testVersion" value="7.4-"/>
+
+	<!-- Verify text domain -->
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="form-handler-wp"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- Enforce prefixes on all global functions/classes/variables -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="fhw"/>
+				<element value="FHW"/>
+				<element value="form_handler_wp"/>
+			</property>
+		</properties>
+	</rule>
+</ruleset>

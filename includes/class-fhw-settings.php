@@ -72,18 +72,18 @@ class FHW_Settings {
 			'fhw-admin',
 			'fhwAdmin',
 			array(
-				'ajaxUrl'          => admin_url( 'admin-ajax.php' ),
-				'testEmailNonce'   => wp_create_nonce( 'fhw_test_email' ),
+				'ajaxUrl'         => admin_url( 'admin-ajax.php' ),
+				'testEmailNonce'  => wp_create_nonce( 'fhw_test_email' ),
 				/* translators: status message shown in admin */
-				'sending'          => __( 'Sending…', 'form-handler-wp' ),
+				'sending'         => __( 'Sending…', 'form-handler-wp' ),
 				/* translators: status message shown in admin */
-				'testSuccess'      => __( 'Test email sent successfully!', 'form-handler-wp' ),
+				'testSuccess'     => __( 'Test email sent successfully!', 'form-handler-wp' ),
 				/* translators: status message shown in admin */
-				'testFail'         => __( 'Test email failed. Check your API key and sender settings.', 'form-handler-wp' ),
+				'testFail'        => __( 'Test email failed. Check your API key and sender settings.', 'form-handler-wp' ),
 				/* translators: confirmation prompt before deleting a form */
-				'confirmDelete'    => __( 'Are you sure you want to delete this form handler? This cannot be undone.', 'form-handler-wp' ),
+				'confirmDelete'   => __( 'Are you sure you want to delete this form handler? This cannot be undone.', 'form-handler-wp' ),
 				/* translators: confirmation prompt before clearing the log */
-				'confirmClearLog'  => __( 'Are you sure you want to clear the entire email log?', 'form-handler-wp' ),
+				'confirmClearLog' => __( 'Are you sure you want to clear the entire email log?', 'form-handler-wp' ),
 			)
 		);
 	}
@@ -128,7 +128,16 @@ class FHW_Settings {
 		$override = ! empty( $_POST['fhw_override_wp_mail'] ) ? '1' : '0';
 		update_option( 'fhw_override_wp_mail', $override );
 
-		wp_safe_redirect( add_query_arg( array( 'page' => 'form-handler-wp', 'tab' => 'brevo', 'updated' => '1' ), admin_url( 'admin.php' ) ) );
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'    => 'form-handler-wp',
+					'tab'     => 'brevo',
+					'updated' => '1',
+				),
+				admin_url( 'admin.php' )
+			)
+		);
 		exit;
 	}
 
@@ -160,7 +169,16 @@ class FHW_Settings {
 			exit;
 		}
 
-		wp_safe_redirect( add_query_arg( array( 'page' => 'form-handler-wp', 'tab' => 'forms', 'added' => '1' ), admin_url( 'admin.php' ) ) );
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'  => 'form-handler-wp',
+					'tab'   => 'forms',
+					'added' => '1',
+				),
+				admin_url( 'admin.php' )
+			)
+		);
 		exit;
 	}
 
@@ -181,7 +199,16 @@ class FHW_Settings {
 			$registry->delete_form( $action_name );
 		}
 
-		wp_safe_redirect( add_query_arg( array( 'page' => 'form-handler-wp', 'tab' => 'forms', 'deleted' => '1' ), admin_url( 'admin.php' ) ) );
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'    => 'form-handler-wp',
+					'tab'     => 'forms',
+					'deleted' => '1',
+				),
+				admin_url( 'admin.php' )
+			)
+		);
 		exit;
 	}
 
@@ -198,7 +225,16 @@ class FHW_Settings {
 		$logger = new FHW_Logger();
 		$logger->clear_log();
 
-		wp_safe_redirect( add_query_arg( array( 'page' => 'form-handler-wp', 'tab' => 'log', 'cleared' => '1' ), admin_url( 'admin.php' ) ) );
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'    => 'form-handler-wp',
+					'tab'     => 'log',
+					'cleared' => '1',
+				),
+				admin_url( 'admin.php' )
+			)
+		);
 		exit;
 	}
 

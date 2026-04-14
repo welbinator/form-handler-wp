@@ -135,10 +135,12 @@ class FHW_Brevo_API implements FHW_Mailer {
 		// Handle rate limiting.
 		if ( 429 === $status_code ) {
 			$retry_after = wp_remote_retrieve_header( $response, 'retry-after' );
-			/* translators: %s: number of seconds to wait */
-			$message = ! empty( $retry_after )
-				? sprintf( __( 'Brevo API rate limit exceeded. Retry after %s seconds.', 'form-handler-wp' ), (int) $retry_after )
-				: __( 'Brevo API rate limit exceeded. Please try again later.', 'form-handler-wp' );
+			if ( ! empty( $retry_after ) ) {
+				/* translators: %s: number of seconds to wait before retrying */
+				$message = sprintf( __( 'Brevo API rate limit exceeded. Retry after %s seconds.', 'form-handler-wp' ), (int) $retry_after );
+			} else {
+				$message = __( 'Brevo API rate limit exceeded. Please try again later.', 'form-handler-wp' );
+			}
 			return new WP_Error( 'fhw_rate_limit', $message );
 		}
 
@@ -159,6 +161,7 @@ class FHW_Brevo_API implements FHW_Mailer {
 		}
 
 		// Log raw error for admins.
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 		error_log( 'Form Handler WP — Brevo API error (' . (int) $status_code . '): ' . $error_message );
 
 		return new WP_Error( 'fhw_api_error', $error_message );

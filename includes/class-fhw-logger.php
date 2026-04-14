@@ -81,10 +81,10 @@ class FHW_Logger {
 		$table_name = $wpdb->prefix . FHW_LOG_TABLE;
 		$limit      = absint( $limit );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT id, sent_at, recipient, subject, status, message_id, error_msg FROM {$table_name} ORDER BY sent_at DESC LIMIT %d",
+				"SELECT id, sent_at, recipient, subject, status, message_id, error_msg FROM {$table_name} ORDER BY sent_at DESC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$limit
 			),
 			ARRAY_A
@@ -99,8 +99,8 @@ class FHW_Logger {
 
 		$table_name = $wpdb->prefix . FHW_LOG_TABLE;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
-		$wpdb->query( "TRUNCATE TABLE {$table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( "TRUNCATE TABLE {$table_name}" );
 	}
 
 	/**
@@ -111,7 +111,7 @@ class FHW_Logger {
 
 		$table_name = $wpdb->prefix . FHW_LOG_TABLE;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
-		$wpdb->query( "DROP TABLE IF EXISTS {$table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( "DROP TABLE IF EXISTS {$table_name}" );
 	}
 }
