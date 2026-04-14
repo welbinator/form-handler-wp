@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Build plugin zip
+        run: |
+          # Create a clean build directory with the correct folder name
+          mkdir -p build/form-handler-wp
+
+          # Copy plugin files — exclude dev-only files
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='vendor' \
+            --exclude='composer.json' \
+            --exclude='composer.lock' \
+            --exclude='phpcs.xml.dist' \
+            --exclude='phpstan.neon' \
+            --exclude='test-form.html' \
+            --exclude='*.sh' \
+            ./ build/form-handler-wp/
+
+          # Create the zip
+          cd build
+          zip -r ../form-handler-wp-${{ steps.version.outputs.VERSION }}.zip form-handler-wp/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Form Handler WP v${{ steps.version.outputs.VERSION }}"
+          body: |
+            ## Installation
+
+            1. Download `form-handler-wp-${{ steps.version.outputs.VERSION }}.zip` below
+            2. In your WordPress admin go to **Plugins → Add New → Upload Plugin**
+            3. Upload the zip and activate
+
+            ## What's included
+            - Plugin files only (no dev dependencies, no test files)
+          files: form-handler-wp-${{ steps.version.outputs.VERSION }}.zip
+          draft: false
+          prerelease: false
