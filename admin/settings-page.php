@@ -157,6 +157,7 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 				<thead>
 					<tr>
 						<th><?php esc_html_e( 'Action Name', 'form-handler-wp' ); ?></th>
+						<th><?php esc_html_e( 'Page URL', 'form-handler-wp' ); ?></th>
 						<th><?php esc_html_e( 'Recipient(s)', 'form-handler-wp' ); ?></th>
 						<th><?php esc_html_e( 'Subject Template', 'form-handler-wp' ); ?></th>
 						<th><?php esc_html_e( 'Status', 'form-handler-wp' ); ?></th>
@@ -167,6 +168,7 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 					<?php foreach ( $forms as $form ) : ?>
 						<tr>
 							<td><code class="fhw-action-code"><?php echo esc_html( $form['action_name'] ); ?></code></td>
+							<td><?php echo $form['page_url'] ? '<a href="' . esc_url( $form['page_url'] ) . '" target="_blank">' . esc_html( $form['page_url'] ) . '</a>' : '&mdash;'; ?></td>
 							<td><?php echo esc_html( $form['to_emails'] ); ?></td>
 							<td><?php echo esc_html( $form['subject_tpl'] ); ?></td>
 							<td>
@@ -206,6 +208,14 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 						<input type="text" id="fhw_action_name" name="action_name"
 							pattern="[a-z0-9_]+" placeholder="contact_form_submit" class="regular-text" required />
 						<span class="description"><?php esc_html_e( 'Unique slug (lowercase, numbers, underscores). Used as the WordPress AJAX action.', 'form-handler-wp' ); ?></span>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="fhw_page_url"><?php esc_html_e( 'Page URL', 'form-handler-wp' ); ?> <span style="color:#d63638;">*</span></label></th>
+					<td>
+						<input type="url" id="fhw_page_url" name="page_url"
+							placeholder="https://example.com/contact/" class="regular-text" required />
+						<span class="description"><?php esc_html_e( 'The URL of the page where this form lives. The plugin loads its scripts only on this page.', 'form-handler-wp' ); ?></span>
 					</td>
 				</tr>
 				<tr>

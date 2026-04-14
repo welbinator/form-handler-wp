@@ -3,7 +3,7 @@
  * Plugin Name:       Form Handler WP
  * Plugin URI:        https://github.com/welbinator/form-handler-wp
  * Description:       Secure AJAX form handling with Brevo transactional email. Build your own forms; we handle the sending.
- * Version:           1.0.3
+ * Version:           1.0.4
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            James Welbes
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'FHW_VERSION', '1.0.3' );
+define( 'FHW_VERSION', '1.0.4' );
 define( 'FHW_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FHW_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'FHW_PLUGIN_FILE', __FILE__ );
@@ -178,9 +178,42 @@ function fhw_nonce_field( $action ) {
 /**
  * Enqueue front-end scripts and styles.
  *
- * Loads fhw-forms.js which auto-intercepts any <form data-fhw-form="action">.
+ * Loads fhw-forms.js on any page that has a registered form handler with a
+ * matching page URL. If no page_url is set on a form, loads on all pages.
  */
 function fhw_enqueue_scripts() {
+	$registry = new FHW_Form_Registry();
+	$forms    = $registry->get_forms();
+
+	if ( empty( $forms ) ) {
+		return;
+	}
+
+	// Check if the current page matches any registered form's page_url.
+	// If a form has no page_url set, load on all pages (fallback behaviour).
+	$should_load = false;
+	$current_url = home_url( add_query_arg( array(), $GLOBALS['wp']->request ) );
+
+	foreach ( $forms as $form ) {
+		$page_url = $form['page_url'] ?? '';
+		if ( '' === $page_url ) {
+			// No page restriction — load everywhere.
+			$should_load = true;
+			break;
+		}
+		// Compare path portion only so http/https differences don't matter.
+		$form_path    = wp_parse_url( $page_url, PHP_URL_PATH );
+		$current_path = wp_parse_url( $current_url, PHP_URL_PATH );
+		if ( $form_path && $current_path && rtrim( $form_path, '/' ) === rtrim( $current_path, '/' ) ) {
+			$should_load = true;
+			break;
+		}
+	}
+
+	if ( ! $should_load ) {
+		return;
+	}
+
 	wp_enqueue_style(
 		'fhw-forms',
 		FHW_PLUGIN_URL . 'assets/css/fhw-forms.css',
