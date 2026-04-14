@@ -3,7 +3,7 @@
  * Plugin Name:       Form Handler WP
  * Plugin URI:        https://github.com/welbinator/form-handler-wp
  * Description:       Secure AJAX form handling with Brevo transactional email. Build your own forms; we handle the sending.
- * Version:           1.0.2
+ * Version:           1.0.3
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            James Welbes
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'FHW_VERSION', '1.0.2' );
+define( 'FHW_VERSION', '1.0.3' );
 define( 'FHW_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FHW_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'FHW_PLUGIN_FILE', __FILE__ );

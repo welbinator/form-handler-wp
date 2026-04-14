@@ -61,6 +61,10 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 			class="<?php echo 'log' === $current_tab ? 'fhw-tab-active' : ''; ?>">
 			<?php esc_html_e( 'Email Log', 'form-handler-wp' ); ?>
 		</a>
+		<a href="<?php echo esc_url( admin_url( 'admin.php?page=form-handler-wp&tab=help' ) ); ?>"
+			class="<?php echo 'help' === $current_tab ? 'fhw-tab-active' : ''; ?>">
+			<?php esc_html_e( 'How to Use', 'form-handler-wp' ); ?>
+		</a>
 	</nav>
 
 <?php if ( 'brevo' === $current_tab ) : ?>
@@ -371,6 +375,78 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 				<?php submit_button( __( 'Clear Log', 'form-handler-wp' ), 'delete', 'submit', false ); ?>
 			</form>
 		<?php endif; ?>
+	</div>
+
+<?php endif; ?>
+
+<?php if ( 'help' === $current_tab ) : ?>
+
+	<div class="fhw-card">
+		<h2><?php esc_html_e( 'Quick Start', 'form-handler-wp' ); ?></h2>
+		<ol style="line-height:2;max-width:700px;">
+			<li><?php esc_html_e( 'Go to Brevo Settings and enter your Brevo v3 API key and a verified sender email.', 'form-handler-wp' ); ?></li>
+			<li><?php esc_html_e( 'Go to Registered Forms and click "Add New Form Handler". Give it a unique action name (e.g. contact_form_submit).', 'form-handler-wp' ); ?></li>
+			<li><?php esc_html_e( 'Build your HTML form anywhere on your site and add the data-fhw-form attribute with your action name — no JavaScript needed.', 'form-handler-wp' ); ?></li>
+		</ol>
+	</div>
+
+	<div class="fhw-card">
+		<h2><?php esc_html_e( 'Building Your Form', 'form-handler-wp' ); ?></h2>
+		<p><?php esc_html_e( 'Add the data-fhw-form attribute to any HTML form. The value must match an action name you registered in Registered Forms.', 'form-handler-wp' ); ?></p>
+		<pre style="background:#f6f7f7;padding:16px;border-radius:4px;overflow:auto;font-size:13px;">&lt;form data-fhw-form=&quot;contact_form_submit&quot;&gt;
+	&lt;input type=&quot;text&quot;  name=&quot;name&quot;  placeholder=&quot;Your Name&quot; /&gt;
+	&lt;input type=&quot;email&quot; name=&quot;email&quot; placeholder=&quot;Email Address&quot; /&gt;
+	&lt;button type=&quot;submit&quot;&gt;Send&lt;/button&gt;
+&lt;/form&gt;</pre>
+		<p><?php esc_html_e( 'The plugin automatically handles the nonce, AJAX submission, and success/error messages. No JavaScript required from you.', 'form-handler-wp' ); ?></p>
+	</div>
+
+	<div class="fhw-card">
+		<h2><?php esc_html_e( 'One Action Name Per Form', 'form-handler-wp' ); ?></h2>
+		<p><?php esc_html_e( 'Each form must use a unique action name that matches a registered form handler. The action name connects your HTML form to its plugin config (recipient email, subject, auto-reply settings, etc.).', 'form-handler-wp' ); ?></p>
+		<p><?php esc_html_e( 'Example — two forms, two action names:', 'form-handler-wp' ); ?></p>
+		<pre style="background:#f6f7f7;padding:16px;border-radius:4px;overflow:auto;font-size:13px;">&lt;!-- Contact form --&gt;
+&lt;form data-fhw-form=&quot;contact_form_submit&quot;&gt; ... &lt;/form&gt;
+
+&lt;!-- Newsletter signup --&gt;
+&lt;form data-fhw-form=&quot;newsletter_signup&quot;&gt; ... &lt;/form&gt;</pre>
+	</div>
+
+	<div class="fhw-card">
+		<h2><?php esc_html_e( 'Optional Form Attributes', 'form-handler-wp' ); ?></h2>
+		<table class="fhw-forms-table">
+			<thead>
+				<tr>
+					<th><?php esc_html_e( 'Attribute', 'form-handler-wp' ); ?></th>
+					<th><?php esc_html_e( 'Description', 'form-handler-wp' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td><code class="fhw-action-code">data-fhw-success="..."</code></td>
+					<td><?php esc_html_e( 'Override the success message shown after submission.', 'form-handler-wp' ); ?></td>
+				</tr>
+				<tr>
+					<td><code class="fhw-action-code">data-fhw-error="..."</code></td>
+					<td><?php esc_html_e( 'Override the generic error message.', 'form-handler-wp' ); ?></td>
+				</tr>
+				<tr>
+					<td><code class="fhw-action-code">data-fhw-reset="false"</code></td>
+					<td><?php esc_html_e( 'Prevent the form from clearing after successful submission.', 'form-handler-wp' ); ?></td>
+				</tr>
+				<tr>
+					<td><code class="fhw-action-code">&lt;div data-fhw-status&gt;&lt;/div&gt;</code></td>
+					<td><?php esc_html_e( 'Place inside your form to control exactly where success/error messages appear.', 'form-handler-wp' ); ?></td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+
+	<div class="fhw-card">
+		<h2><?php esc_html_e( 'Secure API Key (Recommended)', 'form-handler-wp' ); ?></h2>
+		<p><?php esc_html_e( 'For better security, define your Brevo API key as a constant in wp-config.php instead of storing it in the database:', 'form-handler-wp' ); ?></p>
+		<pre style="background:#f6f7f7;padding:16px;border-radius:4px;overflow:auto;font-size:13px;">define( 'FHW_BREVO_API_KEY', 'your-brevo-v3-api-key' );</pre>
+		<p><?php esc_html_e( 'When this constant is present the API key field on the Brevo Settings tab is disabled and the constant value is used automatically.', 'form-handler-wp' ); ?></p>
 	</div>
 
 <?php endif; ?>
