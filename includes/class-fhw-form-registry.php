@@ -167,7 +167,7 @@ class FHW_Form_Registry {
 			'html_email'         => ! empty( $data['html_email'] ) ? '1' : '0',
 			'honeypot_field'     => sanitize_key( $data['honeypot_field'] ?? '' ),
 			'rate_limit'         => absint( $data['rate_limit'] ?? 0 ),
-			'page_url'           => esc_url_raw( $data['page_url'] ?? '' ),
+			'page_url'           => sanitize_textarea_field( $data['page_url'] ?? '' ),
 			'status'             => 'active',
 			'field_schema'       => array(),
 			// Auto-reply fields.

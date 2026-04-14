@@ -211,11 +211,11 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 					</td>
 				</tr>
 				<tr>
-					<th scope="row"><label for="fhw_page_url"><?php esc_html_e( 'Page URL', 'form-handler-wp' ); ?> <span style="color:#d63638;">*</span></label></th>
+					<th scope="row"><label for="fhw_page_url"><?php esc_html_e( 'Page URL(s)', 'form-handler-wp' ); ?> <span style="color:#d63638;">*</span></label></th>
 					<td>
-						<input type="url" id="fhw_page_url" name="page_url"
-							placeholder="https://example.com/contact/" class="regular-text" required />
-						<span class="description"><?php esc_html_e( 'The URL of the page where this form lives. The plugin loads its scripts only on this page.', 'form-handler-wp' ); ?></span>
+						<textarea id="fhw_page_url" name="page_url" rows="3" class="large-text" placeholder="https://example.com/contact/
+https://example.com/hire-me/" required></textarea>
+						<span class="description"><?php esc_html_e( 'URL(s) of the page(s) where this form lives, one per line. The plugin loads its scripts only on these pages.', 'form-handler-wp' ); ?></span>
 					</td>
 				</tr>
 				<tr>
@@ -395,7 +395,7 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 		<h2><?php esc_html_e( 'Quick Start', 'form-handler-wp' ); ?></h2>
 		<ol style="line-height:2;max-width:700px;">
 			<li><?php esc_html_e( 'Go to Brevo Settings and enter your Brevo v3 API key and a verified sender email.', 'form-handler-wp' ); ?></li>
-			<li><?php esc_html_e( 'Go to Registered Forms and click "Add New Form Handler". Give it a unique action name (e.g. contact_form_submit).', 'form-handler-wp' ); ?></li>
+			<li><?php esc_html_e( 'Go to Registered Forms and click "Add New Form Handler". Give it a unique action name (e.g. contact_form_submit) and enter the URL(s) of the page(s) where the form lives.', 'form-handler-wp' ); ?></li>
 			<li><?php esc_html_e( 'Build your HTML form anywhere on your site and add the data-fhw-form attribute with your action name — no JavaScript needed.', 'form-handler-wp' ); ?></li>
 		</ol>
 	</div>
