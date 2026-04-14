@@ -16,7 +16,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set version from tag
+      - name: Get version from tag
         id: version
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
 
@@ -27,30 +27,42 @@ jobs:
 
       - name: Build plugin zip
         run: |
-          # Stage into a folder named exactly form-handler-wp
-          # so WordPress recognises it as the same plugin on update
-          mkdir -p /tmp/build/form-handler-wp
+          PLUGIN_SLUG="form-handler-wp"
+          RELEASE_DIR="/tmp/${PLUGIN_SLUG}"
+          ZIP_NAME="${PLUGIN_SLUG}-${{ steps.version.outputs.VERSION }}.zip"
 
-          rsync -a \
+          # Copy into a clean folder named after the plugin slug
+          # WordPress matches the folder name to the installed plugin slug on update
+          rsync -r \
             --exclude='.git' \
             --exclude='.github' \
+            --exclude='.gitignore' \
             --exclude='vendor' \
             --exclude='node_modules' \
             --exclude='composer.json' \
             --exclude='composer.lock' \
             --exclude='phpcs.xml.dist' \
             --exclude='phpstan.neon' \
+            --exclude='phpstan-bootstrap.php' \
             --exclude='test-form.html' \
-            ./ /tmp/build/form-handler-wp/
+            --exclude='test-form-snippet.html' \
+            --exclude='*.sh' \
+            ./ "${RELEASE_DIR}/"
 
-          cd /tmp/build
-          zip -r $GITHUB_WORKSPACE/form-handler-wp.zip form-handler-wp/
+          cd /tmp
+          zip -r "${ZIP_NAME}" "${PLUGIN_SLUG}/"
+
+          echo "ZIP_PATH=/tmp/${ZIP_NAME}" >> $GITHUB_ENV
+          echo "ZIP_NAME=${ZIP_NAME}" >> $GITHUB_ENV
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: "Form Handler WP v${{ steps.version.outputs.VERSION }}"
-          generate_release_notes: true
-          files: form-handler-wp.zip
+          tag_name: ${{ github.ref_name }}
           draft: false
-          prerelease: false
+          prerelease: ${{ contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') || contains(github.ref_name, '-alpha') }}
+          generate_release_notes: true
+          files: ${{ env.ZIP_PATH }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
