@@ -34,8 +34,11 @@ class FHW_Brevo_API implements FHW_Mailer {
 	 */
 	private function get_api_key() {
 		// Check for constant defined in wp-config.php first.
-		if ( defined( 'FHW_BREVO_API_KEY' ) && '' !== FHW_BREVO_API_KEY ) {
-			return FHW_BREVO_API_KEY;
+		if ( defined( 'FHW_BREVO_API_KEY' ) ) {
+			$key = (string) constant( 'FHW_BREVO_API_KEY' );
+			if ( '' !== $key ) {
+				return $key;
+			}
 		}
 
 		// Fall back to option (stored base64-encoded for light obfuscation).

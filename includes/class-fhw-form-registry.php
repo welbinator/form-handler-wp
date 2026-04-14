@@ -145,7 +145,7 @@ class FHW_Form_Registry {
 		}
 
 		if ( $deleted ) {
-			update_option( self::OPTION_KEY, array_values( $new_forms ) );
+			update_option( self::OPTION_KEY, $new_forms );
 		}
 
 		return $deleted;

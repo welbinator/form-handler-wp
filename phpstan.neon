@@ -4,9 +4,7 @@ parameters:
         - .
     excludePaths:
         - vendor
+        - phpstan-bootstrap.php
     bootstrapFiles:
         - vendor/php-stubs/wordpress-stubs/wordpress-stubs.php
-    # Ignore errors from WordPress globals that PHPStan can't see at runtime
-    ignoreErrors:
-        - '#^Function apply_filters#'
-        - '#^Function do_action#'
+        - phpstan-bootstrap.php

@@ -3,7 +3,7 @@
  * Plugin Name:       Form Handler WP
  * Plugin URI:        https://github.com/welbinator/form-handler-wp
  * Description:       Secure AJAX form handling with Brevo transactional email. Build your own forms; we handle the sending.
- * Version:           1.0.6
+ * Version:           1.0.7
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            James Welbes
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'FHW_VERSION', '1.0.6' );
+define( 'FHW_VERSION', '1.0.7' );
 define( 'FHW_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FHW_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'FHW_PLUGIN_FILE', __FILE__ );
@@ -79,12 +79,18 @@ function fhw_init() {
 	}
 
 	// Nonce endpoint: ?fhw_get_nonce=<action_name> returns JSON { nonce: "..." }.
-	// Used by standalone HTML forms that live outside a WordPress template.
+	// Only issues nonces for registered form actions.
 	if ( isset( $_GET['fhw_get_nonce'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 		$nonce_action = sanitize_key( wp_unslash( $_GET['fhw_get_nonce'] ) ); // phpcs:ignore WordPress.Security.NonceVerification
 		if ( '' !== $nonce_action ) {
-			$nonce_id = 'fhw_' . $nonce_action . '_nonce';
-			wp_send_json( array( 'nonce' => wp_create_nonce( $nonce_id ) ) );
+			$registry = new FHW_Form_Registry();
+			$form     = $registry->get_form( $nonce_action );
+			if ( $form ) {
+				$nonce_id = 'fhw_' . $nonce_action . '_nonce';
+				wp_send_json( array( 'nonce' => wp_create_nonce( $nonce_id ) ) );
+			} else {
+				wp_send_json_error( array( 'message' => 'Unknown form action.' ), 404 );
+			}
 		}
 	}
 }
@@ -157,11 +163,11 @@ function fhw_intercept_wp_mail( $short_circuit, $atts ) { // phpcs:ignore Generi
 
 	$logger = new FHW_Logger();
 	if ( is_wp_error( $result ) ) {
-		$logger->log( implode( ',', wp_list_pluck( $recipients, 'email' ) ), $subject, 'failed', $result->get_error_message(), 0 );
+		$logger->log( implode( ',', wp_list_pluck( $recipients, 'email' ) ), $subject, 'failed', $result->get_error_message(), '' );
 		return false;
 	}
 
-	$logger->log( implode( ',', wp_list_pluck( $recipients, 'email' ) ), $subject, 'sent', '', isset( $result['messageId'] ) ? $result['messageId'] : 0 );
+	$logger->log( implode( ',', wp_list_pluck( $recipients, 'email' ) ), $subject, 'sent', '', isset( $result['messageId'] ) ? $result['messageId'] : '' );
 	return true;
 }
 
