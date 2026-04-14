@@ -1,0 +1,50 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ main, develop, "feature/**", "fix/**" ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  phpcs:
+    name: PHPCS (WordPress Coding Standards)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Run PHPCS
+        run: php vendor/bin/phpcs --standard=WordPress-Extra --ignore=vendor --extensions=php .
+
+  phpstan:
+    name: PHPStan (Static Analysis)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Run PHPStan
+        run: php vendor/bin/phpstan analyse --memory-limit=512M
