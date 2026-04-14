@@ -1,0 +1,313 @@
+/**
+ * Form Handler WP — Admin Styles
+ *
+ * @package Form_Handler_WP
+ */
+
+/* -----------------------------------------------------------------------
+   Page layout
+----------------------------------------------------------------------- */
+.fhw-wrap {
+	max-width: 960px;
+}
+
+.fhw-wrap h1 {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+/* -----------------------------------------------------------------------
+   Tab nav
+----------------------------------------------------------------------- */
+.fhw-tab-nav {
+	display: flex;
+	gap: 0;
+	border-bottom: 1px solid #c3c4c7;
+	margin-bottom: 24px;
+}
+
+.fhw-tab-nav a {
+	display: inline-block;
+	padding: 8px 18px;
+	font-size: 14px;
+	font-weight: 500;
+	color: #50575e;
+	text-decoration: none;
+	border: 1px solid transparent;
+	border-bottom: none;
+	margin-bottom: -1px;
+	border-radius: 3px 3px 0 0;
+	background: transparent;
+}
+
+.fhw-tab-nav a:hover {
+	color: #1d2327;
+	background: #f6f7f7;
+}
+
+.fhw-tab-nav a.fhw-tab-active {
+	color: #1d2327;
+	background: #fff;
+	border-color: #c3c4c7;
+}
+
+/* -----------------------------------------------------------------------
+   Settings card
+----------------------------------------------------------------------- */
+.fhw-card {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 24px 28px;
+	margin-bottom: 24px;
+	box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.fhw-card h2 {
+	margin-top: 0;
+	padding-bottom: 12px;
+	border-bottom: 1px solid #f0f0f1;
+	font-size: 16px;
+}
+
+/* -----------------------------------------------------------------------
+   Form table overrides
+----------------------------------------------------------------------- */
+.fhw-form-table th {
+	width: 220px;
+	padding: 14px 10px 14px 0;
+	vertical-align: top;
+}
+
+.fhw-form-table td {
+	padding: 10px 0;
+	vertical-align: top;
+}
+
+.fhw-form-table input[type="text"],
+.fhw-form-table input[type="email"],
+.fhw-form-table input[type="number"],
+.fhw-form-table input[type="password"],
+.fhw-form-table textarea {
+	width: 100%;
+	max-width: 480px;
+}
+
+.fhw-form-table .description {
+	display: block;
+	margin-top: 4px;
+	color: #646970;
+	font-size: 12px;
+}
+
+/* -----------------------------------------------------------------------
+   API key masked display
+----------------------------------------------------------------------- */
+.fhw-api-key-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	max-width: 480px;
+}
+
+.fhw-api-key-row input {
+	flex: 1;
+}
+
+/* -----------------------------------------------------------------------
+   Test email row
+----------------------------------------------------------------------- */
+.fhw-test-email-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.fhw-test-email-row input[type="email"] {
+	width: 260px;
+}
+
+#fhw-test-result {
+	font-size: 13px;
+	font-weight: 500;
+}
+
+#fhw-test-result.fhw-success {
+	color: #00a32a;
+}
+
+#fhw-test-result.fhw-error {
+	color: #d63638;
+}
+
+/* -----------------------------------------------------------------------
+   Forms list table
+----------------------------------------------------------------------- */
+.fhw-forms-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 13px;
+}
+
+.fhw-forms-table th {
+	text-align: left;
+	padding: 8px 12px;
+	background: #f6f7f7;
+	border-bottom: 1px solid #c3c4c7;
+	font-weight: 600;
+	color: #1d2327;
+}
+
+.fhw-forms-table td {
+	padding: 10px 12px;
+	border-bottom: 1px solid #f0f0f1;
+	vertical-align: middle;
+}
+
+.fhw-forms-table tr:last-child td {
+	border-bottom: none;
+}
+
+.fhw-forms-table tr:hover td {
+	background: #f9f9f9;
+}
+
+.fhw-status-badge {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 10px;
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: .04em;
+}
+
+.fhw-status-active {
+	background: #edfaef;
+	color: #00a32a;
+}
+
+.fhw-status-inactive {
+	background: #f6f7f7;
+	color: #787c82;
+}
+
+.fhw-action-code {
+	font-family: monospace;
+	background: #f6f7f7;
+	padding: 2px 6px;
+	border-radius: 3px;
+	font-size: 12px;
+}
+
+/* -----------------------------------------------------------------------
+   Field schema builder
+----------------------------------------------------------------------- */
+.fhw-field-schema-wrap {
+	max-width: 580px;
+}
+
+.fhw-field-rows {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-bottom: 10px;
+}
+
+.fhw-field-row {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+
+.fhw-field-row input[type="text"] {
+	flex: 1;
+	min-width: 0;
+}
+
+.fhw-field-row select {
+	width: 120px;
+	flex-shrink: 0;
+}
+
+.fhw-field-row .fhw-remove-field {
+	flex-shrink: 0;
+	cursor: pointer;
+	color: #d63638;
+	background: none;
+	border: none;
+	font-size: 18px;
+	line-height: 1;
+	padding: 0 4px;
+}
+
+.fhw-field-row .fhw-remove-field:hover {
+	color: #b32d2e;
+}
+
+#fhw-add-field-btn {
+	margin-top: 4px;
+}
+
+/* -----------------------------------------------------------------------
+   Email log table
+----------------------------------------------------------------------- */
+.fhw-log-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 13px;
+}
+
+.fhw-log-table th {
+	text-align: left;
+	padding: 8px 12px;
+	background: #f6f7f7;
+	border-bottom: 1px solid #c3c4c7;
+	font-weight: 600;
+}
+
+.fhw-log-table td {
+	padding: 8px 12px;
+	border-bottom: 1px solid #f0f0f1;
+	vertical-align: top;
+	max-width: 260px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.fhw-log-table tr:last-child td {
+	border-bottom: none;
+}
+
+.fhw-log-sent {
+	color: #00a32a;
+	font-weight: 600;
+}
+
+.fhw-log-failed {
+	color: #d63638;
+	font-weight: 600;
+}
+
+.fhw-log-error-msg {
+	color: #d63638;
+	font-size: 11px;
+	white-space: normal;
+}
+
+.fhw-empty-state {
+	text-align: center;
+	padding: 32px;
+	color: #787c82;
+	font-style: italic;
+}
+
+/* -----------------------------------------------------------------------
+   Notice tweaks
+----------------------------------------------------------------------- */
+.fhw-wrap .notice {
+	margin: 0 0 20px;
+}

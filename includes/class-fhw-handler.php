@@ -1,0 +1,384 @@
+<?php
+/**
+ * AJAX form submission handler.
+ *
+ * Verifies nonces, sanitizes input, enforces rate limits, builds and
+ * sends the email, logs the result, and returns a JSON response.
+ *
+ * @package Form_Handler_WP
+ */
+
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Class FHW_Handler
+ */
+class FHW_Handler {
+
+	/**
+	 * Form registry instance.
+	 *
+	 * @var FHW_Form_Registry
+	 */
+	private $registry;
+
+	/**
+	 * Logger instance.
+	 *
+	 * @var FHW_Logger
+	 */
+	private $logger;
+
+	/**
+	 * Constructor.
+	 */
+	public function __construct() {
+		$this->registry = new FHW_Form_Registry();
+		$this->logger   = new FHW_Logger();
+	}
+
+	/**
+	 * Main entry point — called by fhw_generic_handler().
+	 *
+	 * Determines which action was submitted, looks up the form config,
+	 * and runs the full pipeline.
+	 */
+	public function handle() {
+		// Determine which action was triggered.
+		// WordPress sets $_REQUEST['action'] before dispatching wp_ajax_* hooks.
+		$action = isset( $_REQUEST['action'] ) ? sanitize_key( $_REQUEST['action'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+
+		if ( '' === $action ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid request.', 'form-handler-wp' ) ), 400 );
+		}
+
+		// Look up the form config.
+		$form = $this->registry->get_form( $action );
+		if ( ! $form ) {
+			wp_send_json_error( array( 'message' => __( 'Unknown form action.', 'form-handler-wp' ) ), 404 );
+		}
+
+		// Verify nonce.
+		$nonce_key = 'fhw_' . $action . '_nonce';
+		if ( ! isset( $_POST[ $nonce_key ] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST[ $nonce_key ] ) ), $nonce_key ) ) {
+			wp_send_json_error( array( 'message' => __( 'Security check failed. Please refresh the page and try again.', 'form-handler-wp' ) ), 403 );
+		}
+
+		// Honeypot check.
+		if ( ! empty( $form['honeypot_field'] ) ) {
+			$honeypot_value = isset( $_POST[ $form['honeypot_field'] ] ) ? sanitize_text_field( wp_unslash( $_POST[ $form['honeypot_field'] ] ) ) : '';
+			if ( '' !== $honeypot_value ) {
+				// Silently succeed to fool bots.
+				wp_send_json_success( array( 'message' => wp_kses_post( $form['success_message'] ) ) );
+			}
+		}
+
+		// Rate limiting.
+		if ( ! empty( $form['rate_limit'] ) && $form['rate_limit'] > 0 ) {
+			$rate_error = $this->check_rate_limit( $action, (int) $form['rate_limit'] );
+			if ( is_wp_error( $rate_error ) ) {
+				wp_send_json_error( array( 'message' => $rate_error->get_error_message() ), 429 );
+			}
+		}
+
+		// Sanitize submitted fields according to schema.
+		$fields      = $this->sanitize_fields( $form['field_schema'] ?? array() );
+		$post_fields = $this->get_all_post_fields( $form['field_schema'] ?? array() );
+
+		// Build subject from template.
+		$subject = $this->resolve_subject( $form['subject_tpl'], $post_fields );
+
+		// Build email body.
+		$html_email = '1' === ( $form['html_email'] ?? '0' );
+		$body       = $this->build_body( $post_fields, $html_email );
+
+		// Build recipients array.
+		$recipients = array();
+		foreach ( explode( ',', $form['to_emails'] ) as $email ) {
+			$email = sanitize_email( trim( $email ) );
+			if ( is_email( $email ) ) {
+				$recipients[] = array( 'email' => $email );
+			}
+		}
+
+		if ( empty( $recipients ) ) {
+			wp_send_json_error( array( 'message' => __( 'Form configuration error: no valid recipient.', 'form-handler-wp' ) ), 500 );
+		}
+
+		// Sender.
+		$sender_email = sanitize_email( get_option( 'fhw_sender_email', get_option( 'admin_email' ) ) );
+		$sender_name  = sanitize_text_field( get_option( 'fhw_sender_name', get_bloginfo( 'name' ) ) );
+
+		// Build payload.
+		$payload = array(
+			'sender'  => array(
+				'name'  => $sender_name,
+				'email' => $sender_email,
+			),
+			'to'      => $recipients,
+			'subject' => $subject,
+		);
+
+		// Reply-To.
+		if ( ! empty( $form['reply_to_field'] ) ) {
+			$reply_to_email = '';
+			// Look for the value in the sanitized POST data.
+			foreach ( $post_fields as $key => $value ) {
+				if ( $form['reply_to_field'] === $key ) {
+					$reply_to_email = sanitize_email( $value );
+					break;
+				}
+			}
+			if ( is_email( $reply_to_email ) ) {
+				$payload['replyTo'] = array( 'email' => $reply_to_email );
+			}
+		}
+
+		if ( $html_email ) {
+			$payload['htmlContent'] = $body;
+		} else {
+			$payload['textContent'] = $body;
+		}
+
+		// Send.
+		$brevo  = new FHW_Brevo_API();
+		$result = $brevo->send( $payload );
+
+		if ( is_wp_error( $result ) ) {
+			$this->logger->log(
+				implode( ', ', wp_list_pluck( $recipients, 'email' ) ),
+				$subject,
+				'failed',
+				$result->get_error_message(),
+				''
+			);
+			wp_send_json_error( array( 'message' => __( 'Your message could not be sent. Please try again later.', 'form-handler-wp' ) ), 500 );
+		}
+
+		$this->logger->log(
+			implode( ', ', wp_list_pluck( $recipients, 'email' ) ),
+			$subject,
+			'sent',
+			'',
+			isset( $result['messageId'] ) ? $result['messageId'] : ''
+		);
+
+		// Record rate limit hit.
+		if ( ! empty( $form['rate_limit'] ) && $form['rate_limit'] > 0 ) {
+			$this->record_rate_limit( $action );
+		}
+
+		wp_send_json_success(
+			array(
+				'message' => '' !== $form['success_message'] ? wp_kses_post( $form['success_message'] ) : __( 'Thank you! Your message has been sent.', 'form-handler-wp' ),
+			)
+		);
+	}
+
+	/**
+	 * Sanitize POST fields according to the form's field schema.
+	 *
+	 * @param array $schema Array of { field_name, field_type } objects.
+	 * @return array Sanitized key=>value pairs.
+	 */
+	private function sanitize_fields( array $schema ) {
+		$sanitized = array();
+
+		foreach ( $schema as $field_def ) {
+			$field_name = sanitize_key( $field_def['field_name'] ?? '' );
+			$field_type = sanitize_key( $field_def['field_type'] ?? 'text' );
+
+			if ( '' === $field_name ) {
+				continue;
+			}
+
+			// phpcs:ignore WordPress.Security.NonceVerification -- nonce already verified above.
+			$raw = isset( $_POST[ $field_name ] ) ? wp_unslash( $_POST[ $field_name ] ) : '';
+
+			switch ( $field_type ) {
+				case 'email':
+					$sanitized[ $field_name ] = sanitize_email( $raw );
+					break;
+				case 'textarea':
+					$sanitized[ $field_name ] = sanitize_textarea_field( $raw );
+					break;
+				case 'url':
+					$sanitized[ $field_name ] = esc_url_raw( $raw );
+					break;
+				case 'number':
+					$sanitized[ $field_name ] = is_numeric( $raw ) ? $raw + 0 : '';
+					break;
+				case 'checkbox':
+					$sanitized[ $field_name ] = ! empty( $raw ) ? '1' : '0';
+					break;
+				case 'text':
+				default:
+					$sanitized[ $field_name ] = sanitize_text_field( $raw );
+					break;
+			}
+		}
+
+		return $sanitized;
+	}
+
+	/**
+	 * Get all non-schema POST fields (for dynamic forms with no strict schema).
+	 * Merges schema-sanitized fields with any extra POST data (sanitized as text).
+	 *
+	 * @param array $schema Form field schema.
+	 * @return array
+	 */
+	private function get_all_post_fields( array $schema ) {
+		$schema_keys = array_column( $schema, 'field_name' );
+		$sanitized   = $this->sanitize_fields( $schema );
+
+		// Also add any POST keys not in the schema (sanitized generically).
+		// phpcs:ignore WordPress.Security.NonceVerification -- already verified.
+		foreach ( $_POST as $key => $value ) {
+			$key = sanitize_key( $key );
+			// Skip WordPress internals and nonces.
+			if ( in_array( $key, array( 'action', 'nonce' ), true ) || false !== strpos( $key, '_nonce' ) ) {
+				continue;
+			}
+			if ( ! in_array( $key, $schema_keys, true ) && ! isset( $sanitized[ $key ] ) ) {
+				$sanitized[ $key ] = sanitize_text_field( wp_unslash( $value ) );
+			}
+		}
+
+		return $sanitized;
+	}
+
+	/**
+	 * Resolve subject template placeholders.
+	 *
+	 * Supported: {field_name} for any posted field, {site_name} for the blog name.
+	 *
+	 * @param string $tpl    Subject template.
+	 * @param array  $fields Sanitized field values.
+	 * @return string Resolved subject.
+	 */
+	private function resolve_subject( $tpl, array $fields ) {
+		$subject = $tpl;
+
+		// Replace {site_name}.
+		$subject = str_replace( '{site_name}', sanitize_text_field( get_bloginfo( 'name' ) ), $subject );
+
+		// Replace {field_name} tokens.
+		foreach ( $fields as $key => $value ) {
+			$subject = str_replace( '{' . $key . '}', sanitize_text_field( (string) $value ), $subject );
+		}
+
+		// Strip any remaining {tokens} to prevent header injection.
+		$subject = preg_replace( '/\{[^}]+\}/', '', $subject );
+
+		// Final sanitize to prevent header injection.
+		$subject = sanitize_text_field( $subject );
+		$subject = str_replace( array( "\r", "\n" ), ' ', $subject );
+
+		return $subject;
+	}
+
+	/**
+	 * Build the email body from submitted fields.
+	 *
+	 * @param array $fields    Sanitized field values.
+	 * @param bool  $html_mode Whether to build HTML or plain text.
+	 * @return string
+	 */
+	private function build_body( array $fields, $html_mode ) {
+		if ( $html_mode ) {
+			$rows = '';
+			foreach ( $fields as $key => $value ) {
+				// Skip internal keys.
+				if ( in_array( $key, array( 'action' ), true ) || false !== strpos( $key, '_nonce' ) ) {
+					continue;
+				}
+				$label = esc_html( ucwords( str_replace( array( '_', '-' ), ' ', $key ) ) );
+				$val   = nl2br( esc_html( (string) $value ) );
+				$rows .= "<tr><th style=\"text-align:left;padding:6px 12px;background:#f5f5f5;\">{$label}</th><td style=\"padding:6px 12px;\">{$val}</td></tr>\n";
+			}
+			return '<table style="border-collapse:collapse;width:100%;font-family:sans-serif;">' . $rows . '</table>';
+		}
+
+		// Plain text.
+		$lines = array();
+		foreach ( $fields as $key => $value ) {
+			if ( in_array( $key, array( 'action' ), true ) || false !== strpos( $key, '_nonce' ) ) {
+				continue;
+			}
+			$label   = ucwords( str_replace( array( '_', '-' ), ' ', $key ) );
+			$lines[] = $label . ': ' . (string) $value;
+		}
+		return implode( "\n", $lines );
+	}
+
+	/**
+	 * Check whether the current IP has exceeded the rate limit.
+	 *
+	 * @param string $action     Form action name.
+	 * @param int    $max_per_hr Maximum submissions per hour.
+	 * @return true|WP_Error True if under limit, WP_Error if exceeded.
+	 */
+	private function check_rate_limit( $action, $max_per_hr ) {
+		$ip           = $this->get_client_ip();
+		$transient_key = 'fhw_rl_' . md5( $action . '_' . $ip );
+		$count         = (int) get_transient( $transient_key );
+
+		if ( $count >= $max_per_hr ) {
+			return new WP_Error(
+				'fhw_rate_limit',
+				__( 'You have submitted this form too many times. Please try again later.', 'form-handler-wp' )
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Record a form submission for rate limiting.
+	 *
+	 * @param string $action Form action name.
+	 */
+	private function record_rate_limit( $action ) {
+		$ip            = $this->get_client_ip();
+		$transient_key = 'fhw_rl_' . md5( $action . '_' . $ip );
+		$count         = (int) get_transient( $transient_key );
+		set_transient( $transient_key, $count + 1, HOUR_IN_SECONDS );
+	}
+
+	/**
+	 * Get the client IP address (with proxy support).
+	 *
+	 * @return string Sanitized IP address.
+	 */
+	private function get_client_ip() {
+		$ip = '';
+
+		$headers = array(
+			'HTTP_CLIENT_IP',
+			'HTTP_X_FORWARDED_FOR',
+			'HTTP_X_FORWARDED',
+			'HTTP_FORWARDED_FOR',
+			'HTTP_FORWARDED',
+			'REMOTE_ADDR',
+		);
+
+		foreach ( $headers as $header ) {
+			if ( ! empty( $_SERVER[ $header ] ) ) {
+				$raw = sanitize_text_field( wp_unslash( $_SERVER[ $header ] ) );
+				// X-Forwarded-For can be a comma-separated list; take the first.
+				$parts = explode( ',', $raw );
+				$ip    = trim( $parts[0] );
+				if ( filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+					break;
+				}
+				$ip = '';
+			}
+		}
+
+		return '' !== $ip ? $ip : '0.0.0.0';
+	}
+}
