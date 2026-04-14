@@ -1,0 +1,171 @@
+<!-- Form Handler WP — Contact Form (pure HTML/CSS/JS, no PHP required) -->
+
+<style>
+.fhw-form-wrap *,
+.fhw-form-wrap *::before,
+.fhw-form-wrap *::after { box-sizing: border-box; }
+
+.fhw-form-wrap {
+	max-width: 520px;
+}
+
+.fhw-form-wrap .fhw-field {
+	margin-bottom: 18px;
+}
+
+.fhw-form-wrap label {
+	display: block;
+	font-size: 14px;
+	font-weight: 600;
+	margin-bottom: 5px;
+}
+
+.fhw-form-wrap input[type="text"],
+.fhw-form-wrap input[type="email"] {
+	width: 100%;
+	padding: 10px 14px;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	font-size: 15px;
+	outline: none;
+	transition: border-color .15s;
+}
+
+.fhw-form-wrap input[type="text"]:focus,
+.fhw-form-wrap input[type="email"]:focus {
+	border-color: #2271b1;
+	box-shadow: 0 0 0 2px rgba(34,113,177,.2);
+}
+
+.fhw-form-wrap button[type="submit"] {
+	padding: 11px 28px;
+	background: #2271b1;
+	color: #fff;
+	border: none;
+	border-radius: 4px;
+	font-size: 15px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background .15s;
+}
+
+.fhw-form-wrap button[type="submit"]:hover { background: #135e96; }
+.fhw-form-wrap button[type="submit"]:disabled { background: #a7aaad; cursor: not-allowed; }
+
+.fhw-form-wrap .fhw-status {
+	margin-top: 14px;
+	padding: 11px 16px;
+	border-radius: 4px;
+	font-size: 14px;
+	display: none;
+}
+.fhw-form-wrap .fhw-status.success { background: #edfaef; color: #00a32a; border: 1px solid #b8e6be; }
+.fhw-form-wrap .fhw-status.error   { background: #fcf0f1; color: #d63638; border: 1px solid #f5c2c4; }
+
+/* Honeypot — invisible to humans */
+.fhw-form-wrap .fhw-hp { position:absolute; left:-9999px; opacity:0; height:0; overflow:hidden; }
+</style>
+
+<div class="fhw-form-wrap">
+	<form id="fhw-contact-form" novalidate>
+
+		<div class="fhw-field">
+			<label for="fhw-name">Your Name <span aria-hidden="true">*</span></label>
+			<input type="text" id="fhw-name" name="name" required autocomplete="name" placeholder="Jane Smith" />
+		</div>
+
+		<div class="fhw-field">
+			<label for="fhw-email">Email Address <span aria-hidden="true">*</span></label>
+			<input type="email" id="fhw-email" name="email" required autocomplete="email" placeholder="jane@example.com" />
+		</div>
+
+		<!-- Honeypot: hidden from humans, bots fill it, plugin discards silently -->
+		<div class="fhw-hp" aria-hidden="true">
+			<input type="text" name="website" tabindex="-1" autocomplete="off" />
+		</div>
+
+		<input type="hidden" id="fhw-nonce" name="fhw_test_contact_nonce" value="" />
+
+		<button type="submit" id="fhw-submit">Send Message</button>
+
+		<div class="fhw-status" id="fhw-status" role="alert" aria-live="polite"></div>
+	</form>
+</div>
+
+<script>
+( function () {
+	'use strict';
+
+	var AJAX_URL  = 'https://mp.crweb.design/wp-admin/admin-ajax.php';
+	var ACTION    = 'test_contact';
+	var NONCE_URL = 'https://mp.crweb.design/?fhw_get_nonce=' + ACTION;
+
+	var form   = document.getElementById( 'fhw-contact-form' );
+	var btn    = document.getElementById( 'fhw-submit' );
+	var status = document.getElementById( 'fhw-status' );
+	var nonce  = document.getElementById( 'fhw-nonce' );
+
+	// Fetch a fresh nonce on load.
+	fetch( NONCE_URL )
+		.then( function(r) { return r.json(); } )
+		.then( function(d) { if ( d && d.nonce ) nonce.value = d.nonce; } )
+		.catch( function() {} );
+
+	form.addEventListener( 'submit', function(e) {
+		e.preventDefault();
+
+		var nameVal  = form.querySelector('[name="name"]').value.trim();
+		var emailVal = form.querySelector('[name="email"]').value.trim();
+
+		if ( !nameVal || !emailVal ) {
+			showStatus( 'error', 'Please fill in all required fields.' );
+			return;
+		}
+		if ( !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal) ) {
+			showStatus( 'error', 'Please enter a valid email address.' );
+			return;
+		}
+
+		btn.disabled    = true;
+		btn.textContent = 'Sending\u2026';
+		hideStatus();
+
+		fetch( AJAX_URL, {
+			method : 'POST',
+			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+			body   : new URLSearchParams({
+				action                 : ACTION,
+				fhw_test_contact_nonce : nonce.value,
+				name                   : nameVal,
+				email                  : emailVal,
+				website                : form.querySelector('[name="website"]').value
+			}).toString()
+		})
+		.then( function(r) { return r.json(); } )
+		.then( function(d) {
+			if ( d.success ) {
+				showStatus( 'success', (d.data && d.data.message) || 'Thank you! Your message has been sent.' );
+				form.reset();
+			} else {
+				showStatus( 'error', (d.data && d.data.message) || 'Something went wrong. Please try again.' );
+			}
+		})
+		.catch( function() {
+			showStatus( 'error', 'A network error occurred. Please try again.' );
+		})
+		.finally( function() {
+			btn.disabled    = false;
+			btn.textContent = 'Send Message';
+		});
+	});
+
+	function showStatus(type, msg) {
+		status.className   = 'fhw-status ' + type;
+		status.textContent = msg;
+		status.style.display = 'block';
+	}
+	function hideStatus() {
+		status.style.display = 'none';
+	}
+}());
+</script>
