@@ -76,6 +76,16 @@ function fhw_init() {
 	if ( '1' === $override_wp_mail ) {
 		add_filter( 'pre_wp_mail', 'fhw_intercept_wp_mail', 10, 2 );
 	}
+
+	// Nonce endpoint: ?fhw_get_nonce=<action_name> returns JSON { nonce: "..." }.
+	// Used by standalone HTML forms that live outside a WordPress template.
+	if ( isset( $_GET['fhw_get_nonce'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+		$nonce_action = sanitize_key( wp_unslash( $_GET['fhw_get_nonce'] ) ); // phpcs:ignore WordPress.Security.NonceVerification
+		if ( '' !== $nonce_action ) {
+			$nonce_id = 'fhw_' . $nonce_action . '_nonce';
+			wp_send_json( array( 'nonce' => wp_create_nonce( $nonce_id ) ) );
+		}
+	}
 }
 add_action( 'init', 'fhw_init' );
 

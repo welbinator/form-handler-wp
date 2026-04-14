@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Form Handler WP — Test Form</title>
+	<style>
+		*, *::before, *::after { box-sizing: border-box; }
+
+		body {
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+			background: #f0f2f5;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			min-height: 100vh;
+			margin: 0;
+			padding: 24px;
+		}
+
+		.card {
+			background: #fff;
+			border-radius: 8px;
+			box-shadow: 0 2px 12px rgba(0,0,0,.1);
+			padding: 40px 36px;
+			width: 100%;
+			max-width: 480px;
+		}
+
+		h1 {
+			margin: 0 0 6px;
+			font-size: 22px;
+			color: #1d2327;
+		}
+
+		p.subtitle {
+			margin: 0 0 28px;
+			color: #646970;
+			font-size: 14px;
+		}
+
+		.field {
+			margin-bottom: 20px;
+		}
+
+		label {
+			display: block;
+			font-size: 13px;
+			font-weight: 600;
+			color: #1d2327;
+			margin-bottom: 6px;
+		}
+
+		input[type="text"],
+		input[type="email"] {
+			width: 100%;
+			padding: 10px 14px;
+			border: 1px solid #c3c4c7;
+			border-radius: 4px;
+			font-size: 15px;
+			color: #1d2327;
+			transition: border-color .15s;
+			outline: none;
+		}
+
+		input[type="text"]:focus,
+		input[type="email"]:focus {
+			border-color: #2271b1;
+			box-shadow: 0 0 0 2px rgba(34,113,177,.2);
+		}
+
+		button[type="submit"] {
+			width: 100%;
+			padding: 12px;
+			background: #2271b1;
+			color: #fff;
+			border: none;
+			border-radius: 4px;
+			font-size: 15px;
+			font-weight: 600;
+			cursor: pointer;
+			transition: background .15s;
+			margin-top: 4px;
+		}
+
+		button[type="submit"]:hover { background: #135e96; }
+		button[type="submit"]:disabled { background: #a7aaad; cursor: not-allowed; }
+
+		.status {
+			margin-top: 16px;
+			padding: 12px 16px;
+			border-radius: 4px;
+			font-size: 14px;
+			display: none;
+		}
+
+		.status.success {
+			background: #edfaef;
+			color: #00a32a;
+			border: 1px solid #b8e6be;
+		}
+
+		.status.error {
+			background: #fcf0f1;
+			color: #d63638;
+			border: 1px solid #f5c2c4;
+		}
+
+		/* Honeypot — visually hidden */
+		.hp-field {
+			position: absolute;
+			left: -9999px;
+			opacity: 0;
+			height: 0;
+			overflow: hidden;
+		}
+	</style>
+</head>
+<body>
+
+<div class="card">
+	<h1>Contact Us</h1>
+	<p class="subtitle">Fill out the form below and we'll get back to you shortly.</p>
+
+	<form id="fhw-test-form" novalidate>
+
+		<div class="field">
+			<label for="fhw-name">Your Name <span aria-hidden="true">*</span></label>
+			<input type="text" id="fhw-name" name="name" required autocomplete="name" placeholder="Jane Smith" />
+		</div>
+
+		<div class="field">
+			<label for="fhw-email">Email Address <span aria-hidden="true">*</span></label>
+			<input type="email" id="fhw-email" name="email" required autocomplete="email" placeholder="jane@example.com" />
+		</div>
+
+		<!-- Honeypot: bots fill this, humans don't see it -->
+		<div class="hp-field" aria-hidden="true">
+			<label for="fhw-website">Website</label>
+			<input type="text" id="fhw-website" name="website" tabindex="-1" autocomplete="off" />
+		</div>
+
+		<?php
+			/*
+			 * If this file is loaded inside a WordPress template, use the PHP helper:
+			 *   <?php fhw_nonce_field( 'fhw_test_contact_nonce' ); ?>
+			 *
+			 * For a standalone HTML test page outside WordPress, generate the nonce
+			 * via a small inline script (see the <script> block below).
+			 */
+		?>
+		<input type="hidden" id="fhw-nonce" name="fhw_test_contact_nonce" value="" />
+
+		<button type="submit" id="fhw-submit">Send Message</button>
+
+		<div class="status" id="fhw-status" role="alert" aria-live="polite"></div>
+	</form>
+</div>
+
+<script>
+( function () {
+	'use strict';
+
+	/**
+	 * Configuration — update these to match your WordPress install.
+	 *
+	 * AJAX_URL  : Your site's wp-admin/admin-ajax.php endpoint.
+	 * ACTION    : Must match the action name registered in Form Handler WP admin.
+	 * NONCE_URL : A small PHP endpoint that returns the nonce as JSON.
+	 *             Create wp-content/plugins/form-handler-wp/nonce.php (see instructions).
+	 *             OR: output the nonce inline via wp_localize_script() in a real WP theme.
+	 */
+	var CONFIG = {
+		ajaxUrl : 'https://mp.crweb.design/wp-admin/admin-ajax.php',
+		action  : 'test_contact',
+		nonceUrl: 'https://mp.crweb.design/?fhw_get_nonce=test_contact'
+	};
+
+	var form   = document.getElementById( 'fhw-test-form' );
+	var btn    = document.getElementById( 'fhw-submit' );
+	var status = document.getElementById( 'fhw-status' );
+	var nonce  = document.getElementById( 'fhw-nonce' );
+
+	// ------------------------------------------------------------------
+	// Step 1: Fetch a fresh nonce on page load.
+	// ------------------------------------------------------------------
+	fetch( CONFIG.nonceUrl )
+		.then( function ( res ) { return res.json(); } )
+		.then( function ( data ) {
+			if ( data && data.nonce ) {
+				nonce.value = data.nonce;
+			}
+		} )
+		.catch( function () {
+			// Nonce fetch failed — form will still try; server will reject with 403.
+			console.warn( 'Form Handler WP: could not fetch nonce.' );
+		} );
+
+	// ------------------------------------------------------------------
+	// Step 2: Handle submission.
+	// ------------------------------------------------------------------
+	form.addEventListener( 'submit', function ( e ) {
+		e.preventDefault();
+
+		var nameVal  = form.querySelector( '[name="name"]' ).value.trim();
+		var emailVal = form.querySelector( '[name="email"]' ).value.trim();
+
+		// Basic client-side validation.
+		if ( ! nameVal || ! emailVal ) {
+			showStatus( 'error', 'Please fill in all required fields.' );
+			return;
+		}
+
+		if ( ! /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test( emailVal ) ) {
+			showStatus( 'error', 'Please enter a valid email address.' );
+			return;
+		}
+
+		btn.disabled    = true;
+		btn.textContent = 'Sending\u2026';
+		hideStatus();
+
+		var body = new URLSearchParams( {
+			action                     : CONFIG.action,
+			fhw_test_contact_nonce     : nonce.value,
+			name                       : nameVal,
+			email                      : emailVal,
+			website                    : form.querySelector( '[name="website"]' ).value // honeypot
+		} );
+
+		fetch( CONFIG.ajaxUrl, {
+			method : 'POST',
+			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+			body   : body.toString()
+		} )
+		.then( function ( res ) { return res.json(); } )
+		.then( function ( data ) {
+			if ( data.success ) {
+				showStatus( 'success', data.data.message || 'Thank you! Your message has been sent.' );
+				form.reset();
+			} else {
+				showStatus( 'error', ( data.data && data.data.message ) || 'Something went wrong. Please try again.' );
+			}
+		} )
+		.catch( function () {
+			showStatus( 'error', 'A network error occurred. Please check your connection and try again.' );
+		} )
+		.finally( function () {
+			btn.disabled    = false;
+			btn.textContent = 'Send Message';
+		} );
+	} );
+
+	function showStatus( type, message ) {
+		status.className        = 'status ' + type;
+		status.textContent      = message;
+		status.style.display    = 'block';
+	}
+
+	function hideStatus() {
+		status.style.display = 'none';
+	}
+
+} )();
+</script>
+
+</body>
+</html>
