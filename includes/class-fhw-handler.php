@@ -166,6 +166,11 @@ class FHW_Handler {
 			isset( $result['messageId'] ) ? $result['messageId'] : ''
 		);
 
+		// Send auto-reply confirmation to the submitter if enabled.
+		if ( '1' === ( $form['autoreply_enabled'] ?? '0' ) && ! empty( $form['autoreply_to_field'] ) ) {
+			$this->send_autoreply( $form, $post_fields );
+		}
+
 		// Record rate limit hit.
 		if ( ! empty( $form['rate_limit'] ) && $form['rate_limit'] > 0 ) {
 			$this->record_rate_limit( $action );
@@ -347,6 +352,98 @@ class FHW_Handler {
 		$transient_key = 'fhw_rl_' . md5( $action . '_' . $ip );
 		$count         = (int) get_transient( $transient_key );
 		set_transient( $transient_key, $count + 1, HOUR_IN_SECONDS );
+	}
+
+	/**
+	 * Send an auto-reply confirmation email to the form submitter.
+	 *
+	 * @param array $form        Form config.
+	 * @param array $post_fields Sanitized submitted field values.
+	 */
+	private function send_autoreply( array $form, array $post_fields ) {
+		$to_field = $form['autoreply_to_field'];
+		$to_email = '';
+
+		foreach ( $post_fields as $key => $value ) {
+			if ( $to_field === $key ) {
+				$to_email = sanitize_email( $value );
+				break;
+			}
+		}
+
+		if ( ! is_email( $to_email ) ) {
+			return;
+		}
+
+		$sender_email = sanitize_email( get_option( 'fhw_sender_email', get_option( 'admin_email' ) ) );
+		$sender_name  = sanitize_text_field( get_option( 'fhw_sender_name', get_bloginfo( 'name' ) ) );
+
+		// Resolve subject placeholders.
+		$subject = ! empty( $form['autoreply_subject'] )
+			? $this->resolve_subject( $form['autoreply_subject'], $post_fields )
+			: $this->resolve_subject(
+				/* translators: %s: site name placeholder token */
+				__( 'Thanks for contacting {site_name}!', 'form-handler-wp' ),
+				$post_fields
+			);
+
+		// Build body: use configured message or a generic fallback.
+		$html_email = '1' === ( $form['html_email'] ?? '0' );
+
+		if ( ! empty( $form['autoreply_message'] ) ) {
+			// Replace placeholders in the custom message.
+			$body = $form['autoreply_message'];
+			$body = str_replace( '{site_name}', esc_html( get_bloginfo( 'name' ) ), $body );
+			foreach ( $post_fields as $key => $value ) {
+				$body = str_replace( '{' . $key . '}', esc_html( (string) $value ), $body );
+			}
+			$body = preg_replace( '/\{[^}]+\}/', '', $body );
+			if ( ! $html_email ) {
+				$body = wp_strip_all_tags( $body );
+			}
+		} else {
+			$site_name = sanitize_text_field( get_bloginfo( 'name' ) );
+			if ( $html_email ) {
+				$body = '<p>' . sprintf(
+					/* translators: %s: site name */
+					esc_html__( 'Thank you for reaching out to %s. We have received your message and will get back to you shortly.', 'form-handler-wp' ),
+					esc_html( $site_name )
+				) . '</p>';
+			} else {
+				$body = sprintf(
+					/* translators: %s: site name */
+					__( 'Thank you for reaching out to %s. We have received your message and will get back to you shortly.', 'form-handler-wp' ),
+					$site_name
+				);
+			}
+		}
+
+		$payload = array(
+			'sender'  => array(
+				'name'  => $sender_name,
+				'email' => $sender_email,
+			),
+			'to'      => array( array( 'email' => $to_email ) ),
+			'subject' => $subject,
+		);
+
+		if ( $html_email ) {
+			$payload['htmlContent'] = $body;
+		} else {
+			$payload['textContent'] = $body;
+		}
+
+		$brevo  = new FHW_Brevo_API();
+		$result = $brevo->send( $payload );
+
+		// Log the auto-reply (best-effort — don't fail the main request).
+		$this->logger->log(
+			$to_email,
+			'[auto-reply] ' . $subject,
+			is_wp_error( $result ) ? 'failed' : 'sent',
+			is_wp_error( $result ) ? $result->get_error_message() : '',
+			! is_wp_error( $result ) && isset( $result['messageId'] ) ? $result['messageId'] : ''
+		);
 	}
 
 	/**

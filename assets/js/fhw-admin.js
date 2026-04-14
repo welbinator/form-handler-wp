@@ -156,6 +156,29 @@
 	}
 
 	// -----------------------------------------------------------------------
+	// Auto-reply row toggle
+	// -----------------------------------------------------------------------
+	function initAutoreplyToggle() {
+		var $checkbox = $( '#fhw_autoreply_enabled' );
+		var $rows     = $( '.fhw-autoreply-row' );
+
+		if ( ! $checkbox.length ) {
+			return;
+		}
+
+		function toggle() {
+			if ( $checkbox.is( ':checked' ) ) {
+				$rows.show();
+			} else {
+				$rows.hide();
+			}
+		}
+
+		toggle();
+		$checkbox.on( 'change', toggle );
+	}
+
+	// -----------------------------------------------------------------------
 	// Boot
 	// -----------------------------------------------------------------------
 	$( function () {
@@ -164,6 +187,7 @@
 		initTestEmail();
 		initDeleteConfirm();
 		initClearLogConfirm();
+		initAutoreplyToggle();
 	} );
 
 } )( jQuery );

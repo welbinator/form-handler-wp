@@ -272,6 +272,39 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 					</td>
 				</tr>
 				<tr>
+					<th scope="row"><?php esc_html_e( 'Auto-Reply to Submitter', 'form-handler-wp' ); ?></th>
+					<td>
+						<label>
+							<input type="checkbox" name="autoreply_enabled" value="1" id="fhw_autoreply_enabled" />
+							<?php esc_html_e( 'Send a confirmation email to the person who filled out the form', 'form-handler-wp' ); ?>
+						</label>
+					</td>
+				</tr>
+				<tr class="fhw-autoreply-row">
+					<th scope="row"><label for="fhw_autoreply_to_field"><?php esc_html_e( 'Submitter Email Field', 'form-handler-wp' ); ?> <span style="color:#d63638;">*</span></label></th>
+					<td>
+						<input type="text" id="fhw_autoreply_to_field" name="autoreply_to_field"
+							placeholder="email" class="regular-text" />
+						<span class="description"><?php esc_html_e( 'The field name that contains the submitter\'s email address.', 'form-handler-wp' ); ?></span>
+					</td>
+				</tr>
+				<tr class="fhw-autoreply-row">
+					<th scope="row"><label for="fhw_autoreply_subject"><?php esc_html_e( 'Confirmation Subject', 'form-handler-wp' ); ?></label></th>
+					<td>
+						<input type="text" id="fhw_autoreply_subject" name="autoreply_subject"
+							placeholder="<?php esc_attr_e( 'Thanks for contacting {site_name}!', 'form-handler-wp' ); ?>"
+							class="regular-text" />
+						<span class="description"><?php esc_html_e( 'Supports {field_name} and {site_name} placeholders. Leave blank for a generic default.', 'form-handler-wp' ); ?></span>
+					</td>
+				</tr>
+				<tr class="fhw-autoreply-row">
+					<th scope="row"><label for="fhw_autoreply_message"><?php esc_html_e( 'Confirmation Message', 'form-handler-wp' ); ?></label></th>
+					<td>
+						<textarea id="fhw_autoreply_message" name="autoreply_message" rows="4" class="large-text"></textarea>
+						<span class="description"><?php esc_html_e( 'Supports {field_name} and {site_name} placeholders. HTML allowed. Leave blank for a generic thank-you message.', 'form-handler-wp' ); ?></span>
+					</td>
+				</tr>
+				<tr>
 					<th scope="row"><label for="fhw_honeypot_field"><?php esc_html_e( 'Honeypot Field Name', 'form-handler-wp' ); ?></label></th>
 					<td>
 						<input type="text" id="fhw_honeypot_field" name="honeypot_field"

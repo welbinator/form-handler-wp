@@ -305,6 +305,11 @@
 	font-style: italic;
 }
 
+/* Auto-reply sub-rows — hidden until checkbox is checked */
+.fhw-autoreply-row {
+	display: none;
+}
+
 /* -----------------------------------------------------------------------
    Notice tweaks
 ----------------------------------------------------------------------- */
