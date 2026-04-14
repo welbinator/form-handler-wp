@@ -157,7 +157,6 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 				<thead>
 					<tr>
 						<th><?php esc_html_e( 'Action Name', 'form-handler-wp' ); ?></th>
-						<th><?php esc_html_e( 'Page URL', 'form-handler-wp' ); ?></th>
 						<th><?php esc_html_e( 'Recipient(s)', 'form-handler-wp' ); ?></th>
 						<th><?php esc_html_e( 'Subject Template', 'form-handler-wp' ); ?></th>
 						<th><?php esc_html_e( 'Status', 'form-handler-wp' ); ?></th>
@@ -168,7 +167,6 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 					<?php foreach ( $forms as $form ) : ?>
 						<tr>
 							<td><code class="fhw-action-code"><?php echo esc_html( $form['action_name'] ); ?></code></td>
-							<td><?php echo $form['page_url'] ? '<a href="' . esc_url( $form['page_url'] ) . '" target="_blank">' . esc_html( $form['page_url'] ) . '</a>' : '&mdash;'; ?></td>
 							<td><?php echo esc_html( $form['to_emails'] ); ?></td>
 							<td><?php echo esc_html( $form['subject_tpl'] ); ?></td>
 							<td>
@@ -208,14 +206,6 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 						<input type="text" id="fhw_action_name" name="action_name"
 							pattern="[a-z0-9_]+" placeholder="contact_form_submit" class="regular-text" required />
 						<span class="description"><?php esc_html_e( 'Unique slug (lowercase, numbers, underscores). Used as the WordPress AJAX action.', 'form-handler-wp' ); ?></span>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row"><label for="fhw_page_url"><?php esc_html_e( 'Page URL(s)', 'form-handler-wp' ); ?> <span style="color:#d63638;">*</span></label></th>
-					<td>
-						<textarea id="fhw_page_url" name="page_url" rows="3" class="large-text" placeholder="https://example.com/contact/
-https://example.com/hire-me/" required></textarea>
-						<span class="description"><?php esc_html_e( 'URL(s) of the page(s) where this form lives, one per line. The plugin loads its scripts only on these pages.', 'form-handler-wp' ); ?></span>
 					</td>
 				</tr>
 				<tr>
@@ -395,7 +385,7 @@ https://example.com/hire-me/" required></textarea>
 		<h2><?php esc_html_e( 'Quick Start', 'form-handler-wp' ); ?></h2>
 		<ol style="line-height:2;max-width:700px;">
 			<li><?php esc_html_e( 'Go to Brevo Settings and enter your Brevo v3 API key and a verified sender email.', 'form-handler-wp' ); ?></li>
-			<li><?php esc_html_e( 'Go to Registered Forms and click "Add New Form Handler". Give it a unique action name (e.g. contact_form_submit) and enter the URL(s) of the page(s) where the form lives.', 'form-handler-wp' ); ?></li>
+			<li><?php esc_html_e( 'Go to Registered Forms and click "Add New Form Handler". Give it a unique action name (e.g. contact_form_submit).', 'form-handler-wp' ); ?></li>
 			<li><?php esc_html_e( 'Build your HTML form anywhere on your site and add the data-fhw-form attribute with your action name — no JavaScript needed.', 'form-handler-wp' ); ?></li>
 		</ol>
 	</div>
