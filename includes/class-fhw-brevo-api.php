@@ -119,6 +119,8 @@ class FHW_Brevo_API implements FHW_Mailer {
 					'api-key'      => $api_key,
 					'Content-Type' => 'application/json',
 					'Accept'       => 'application/json',
+					'User-Agent'   => 'sendinblue_plugins/wordpress',
+					'sib-plugin'   => 'wp-' . FHW_VERSION,
 				),
 				'body'    => wp_json_encode( $body ),
 			)
