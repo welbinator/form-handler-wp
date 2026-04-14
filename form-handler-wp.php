@@ -3,7 +3,7 @@
  * Plugin Name:       Form Handler WP
  * Plugin URI:        https://github.com/welbinator/form-handler-wp
  * Description:       Secure AJAX form handling with Brevo transactional email. Build your own forms; we handle the sending.
- * Version:           1.0.1
+ * Version:           1.0.2
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            James Welbes
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'FHW_VERSION', '1.0.1' );
+define( 'FHW_VERSION', '1.0.2' );
 define( 'FHW_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FHW_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'FHW_PLUGIN_FILE', __FILE__ );
@@ -176,14 +176,32 @@ function fhw_nonce_field( $action ) {
 }
 
 /**
- * Enqueue front-end script that exposes the AJAX URL.
+ * Enqueue front-end scripts and styles.
+ *
+ * Loads fhw-forms.js which auto-intercepts any <form data-fhw-form="action">.
  */
 function fhw_enqueue_scripts() {
+	wp_enqueue_style(
+		'fhw-forms',
+		FHW_PLUGIN_URL . 'assets/css/fhw-forms.css',
+		array(),
+		FHW_VERSION
+	);
+
+	wp_enqueue_script(
+		'fhw-forms',
+		FHW_PLUGIN_URL . 'assets/js/fhw-forms.js',
+		array(),
+		FHW_VERSION,
+		true
+	);
+
 	wp_localize_script(
-		'jquery',
+		'fhw-forms',
 		'fhwData',
 		array(
-			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+			'ajaxUrl'  => admin_url( 'admin-ajax.php' ),
+			'nonceUrl' => home_url( '/?fhw_get_nonce=' ),
 		)
 	);
 }

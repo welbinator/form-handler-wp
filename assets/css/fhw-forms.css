@@ -1,0 +1,29 @@
+/**
+ * Form Handler WP — Front-end status styles
+ *
+ * Styles the [data-fhw-status] element injected by fhw-forms.js.
+ * Override freely in your theme.
+ *
+ * @package Form_Handler_WP
+ */
+
+[data-fhw-status] {
+	display: none;
+	margin-top: 14px;
+	padding: 11px 16px;
+	border-radius: 4px;
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+[data-fhw-status].fhw-status--success {
+	background: #edfaef;
+	color: #00a32a;
+	border: 1px solid #b8e6be;
+}
+
+[data-fhw-status].fhw-status--error {
+	background: #fcf0f1;
+	color: #d63638;
+	border: 1px solid #f5c2c4;
+}
