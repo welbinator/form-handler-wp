@@ -47,4 +47,4 @@ jobs:
         run: composer install --prefer-dist --no-progress --no-interaction
 
       - name: Run PHPStan
-        run: php vendor/bin/phpstan analyse --memory-limit=512M
+        run: php vendor/bin/phpstan analyse --memory-limit=1G
