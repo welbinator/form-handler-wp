@@ -18,41 +18,37 @@ jobs:
         id: version
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
 
+      - name: Update plugin header version
+        run: |
+          sed -i "s/^ \* Version:.*/ * Version:           ${{ steps.version.outputs.VERSION }}/" form-handler-wp.php
+          sed -i "s/define( 'FHW_VERSION', '[^']*' );/define( 'FHW_VERSION', '${{ steps.version.outputs.VERSION }}' );/" form-handler-wp.php
+
       - name: Build plugin zip
         run: |
-          # Create a clean build directory with the correct folder name
-          mkdir -p build/form-handler-wp
+          # Stage into a folder named exactly form-handler-wp
+          # so WordPress recognises it as the same plugin on update
+          mkdir -p /tmp/build/form-handler-wp
 
-          # Copy plugin files — exclude dev-only files
           rsync -a \
             --exclude='.git' \
             --exclude='.github' \
             --exclude='vendor' \
+            --exclude='node_modules' \
             --exclude='composer.json' \
             --exclude='composer.lock' \
             --exclude='phpcs.xml.dist' \
             --exclude='phpstan.neon' \
             --exclude='test-form.html' \
-            --exclude='*.sh' \
-            ./ build/form-handler-wp/
+            ./ /tmp/build/form-handler-wp/
 
-          # Create the zip
-          cd build
-          zip -r ../form-handler-wp-${{ steps.version.outputs.VERSION }}.zip form-handler-wp/
+          cd /tmp/build
+          zip -r $GITHUB_WORKSPACE/form-handler-wp.zip form-handler-wp/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: "Form Handler WP v${{ steps.version.outputs.VERSION }}"
-          body: |
-            ## Installation
-
-            1. Download `form-handler-wp-${{ steps.version.outputs.VERSION }}.zip` below
-            2. In your WordPress admin go to **Plugins → Add New → Upload Plugin**
-            3. Upload the zip and activate
-
-            ## What's included
-            - Plugin files only (no dev dependencies, no test files)
-          files: form-handler-wp-${{ steps.version.outputs.VERSION }}.zip
+          generate_release_notes: true
+          files: form-handler-wp.zip
           draft: false
           prerelease: false
