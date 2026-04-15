@@ -8,7 +8,11 @@
         "phpstan/extension-installer": "^1.4",
         "codeception/codeception": "^5.0",
         "codeception/module-asserts": "^3.0",
-        "lucatume/wp-browser": "^4.0"
+        "lucatume/wp-browser": "^4.0",
+        "symfony/console": "^7.0",
+        "symfony/finder": "^7.0",
+        "symfony/yaml": "^7.0",
+        "symfony/var-dumper": "^7.0"
     },
     "config": {
         "allow-plugins": {
