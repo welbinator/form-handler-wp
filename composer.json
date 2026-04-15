@@ -19,7 +19,8 @@
         "symfony/string": "^7.0",
         "symfony/process": "^7.0",
         "symfony/filesystem": "^7.0",
-        "symfony/browser-kit": "^7.0"
+        "symfony/browser-kit": "^7.0",
+        "codeception/module-webdriver": "^4.0"
     },
     "config": {
         "allow-plugins": {

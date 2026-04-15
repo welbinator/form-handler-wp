@@ -1,0 +1,24 @@
+suite_namespace: Tests\Acceptance
+actor: AcceptanceTester
+path: Acceptance
+modules:
+  enabled:
+    - WebDriver:
+        url: https://form-handler-wp.ddev.site
+        browser: chrome
+        # Chromedriver runs on the host at port 9515.
+        # Inside the DDEV container, host.docker.internal resolves to the host machine.
+        host: host.docker.internal
+        port: 9515
+        window_size: 1280x900
+        capabilities:
+          "goog:chromeOptions":
+            args:
+              - "--headless=new"
+              - "--no-sandbox"
+              - "--disable-dev-shm-usage"
+              - "--disable-gpu"
+              - "--window-size=1280,900"
+  config:
+    WebDriver:
+      wait: 10
