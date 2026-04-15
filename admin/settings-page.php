@@ -34,6 +34,9 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 	<?php if ( isset( $_GET['updated'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification ?>
 		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Settings saved.', 'form-handler-wp' ); ?></p></div>
 	<?php endif; ?>
+	<?php if ( isset( $_GET['form_updated'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification ?>
+		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Form handler updated.', 'form-handler-wp' ); ?></p></div>
+	<?php endif; ?>
 	<?php if ( isset( $_GET['added'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification ?>
 		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Form handler added.', 'form-handler-wp' ); ?></p></div>
 	<?php endif; ?>
@@ -49,8 +52,10 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 	<?php if ( isset( $_GET['submissions_cleared'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification ?>
 		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'All submissions cleared.', 'form-handler-wp' ); ?></p></div>
 	<?php endif; ?>
-	<?php if ( isset( $_GET['error'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification ?>
-		<div class="notice notice-error is-dismissible"><p><?php echo esc_html( urldecode( sanitize_text_field( $_GET['error'] ) ) ); ?></p></div> <?php // phpcs:ignore WordPress.Security.NonceVerification ?>
+	<?php if ( isset( $_GET['error'] ) && 'duplicate_action' === sanitize_key( $_GET['error'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification ?>
+		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'That action name is already in use by another form.', 'form-handler-wp' ); ?></p></div>
+	<?php elseif ( isset( $_GET['error'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification ?>
+		<div class="notice notice-error is-dismissible"><p><?php echo esc_html( urldecode( sanitize_text_field( wp_unslash( $_GET['error'] ) ) ) ); ?></p></div> <?php // phpcs:ignore WordPress.Security.NonceVerification ?>
 	<?php endif; ?>
 
 	<?php // Tab nav. ?>
@@ -185,6 +190,23 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 								</span>
 							</td>
 							<td>
+								<a href="
+								<?php
+								echo esc_url(
+									add_query_arg(
+										array(
+											'page' => 'form-handler-wp',
+											'tab'  => 'forms',
+											'edit' => $form['action_name'],
+										),
+										admin_url( 'admin.php' )
+									)
+								);
+								?>
+											"
+									class="button button-small">
+									<?php esc_html_e( 'Edit', 'form-handler-wp' ); ?>
+								</a>
 								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"
 									class="fhw-delete-form" style="display:inline;">
 									<input type="hidden" name="action" value="fhw_delete_form" />
@@ -202,27 +224,45 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 		<?php endif; ?>
 	</div>
 
+	<?php
+	// Edit mode detection.
+	$editing_action = isset( $_GET['edit'] ) ? sanitize_key( wp_unslash( $_GET['edit'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+	$editing_form   = '' !== $editing_action ? $registry->get_form( $editing_action ) : false;
+	$is_editing     = false !== $editing_form;
+	?>
+
 	<div class="fhw-card">
-		<h2><?php esc_html_e( 'Add New Form Handler', 'form-handler-wp' ); ?></h2>
+		<h2><?php echo $is_editing ? esc_html__( 'Edit Form Handler', 'form-handler-wp' ) : esc_html__( 'Add New Form Handler', 'form-handler-wp' ); ?></h2>
 
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-			<input type="hidden" name="action" value="fhw_add_form" />
-			<?php wp_nonce_field( 'fhw_add_form', 'fhw_add_form_nonce' ); ?>
+			<?php if ( $is_editing ) : ?>
+				<input type="hidden" name="action" value="fhw_update_form" />
+				<input type="hidden" name="original_action" value="<?php echo esc_attr( $editing_action ); ?>" />
+				<?php wp_nonce_field( 'fhw_update_form', 'fhw_update_form_nonce' ); ?>
+			<?php else : ?>
+				<input type="hidden" name="action" value="fhw_add_form" />
+				<?php wp_nonce_field( 'fhw_add_form', 'fhw_add_form_nonce' ); ?>
+			<?php endif; ?>
 
 			<table class="form-table fhw-form-table">
 				<tr>
 					<th scope="row"><label for="fhw_action_name"><?php esc_html_e( 'Action Name', 'form-handler-wp' ); ?> <span style="color:#d63638;">*</span></label></th>
 					<td>
 						<input type="text" id="fhw_action_name" name="action_name"
-							pattern="[a-z0-9_]+" placeholder="contact_form_submit" class="regular-text" required />
+							pattern="[a-z0-9_]+" placeholder="contact_form_submit" class="regular-text" required
+							value="<?php echo $is_editing ? esc_attr( $editing_form['action_name'] ) : ''; ?>" />
 						<span class="description"><?php esc_html_e( 'Unique slug (lowercase, numbers, underscores). Used as the WordPress AJAX action.', 'form-handler-wp' ); ?></span>
+						<?php if ( $is_editing ) : ?>
+							<span class="description" style="color:#d63638;display:block;margin-top:4px;"><?php esc_html_e( 'Changing this will break any forms on your site using the old value.', 'form-handler-wp' ); ?></span>
+						<?php endif; ?>
 					</td>
 				</tr>
 				<tr>
 					<th scope="row"><label for="fhw_to_emails"><?php esc_html_e( 'Recipient Email(s)', 'form-handler-wp' ); ?> <span style="color:#d63638;">*</span></label></th>
 					<td>
 						<input type="text" id="fhw_to_emails" name="to_emails"
-							placeholder="you@example.com, other@example.com" class="regular-text" required />
+							placeholder="you@example.com, other@example.com" class="regular-text" required
+							value="<?php echo $is_editing ? esc_attr( $editing_form['to_emails'] ) : ''; ?>" />
 						<span class="description"><?php esc_html_e( 'Comma-separated list of recipient addresses.', 'form-handler-wp' ); ?></span>
 					</td>
 				</tr>
@@ -230,7 +270,8 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 					<th scope="row"><label for="fhw_subject_tpl"><?php esc_html_e( 'Subject Template', 'form-handler-wp' ); ?> <span style="color:#d63638;">*</span></label></th>
 					<td>
 						<input type="text" id="fhw_subject_tpl" name="subject_tpl"
-							placeholder="New message from {name} — {site_name}" class="regular-text" required />
+							placeholder="New message from {name} — {site_name}" class="regular-text" required
+							value="<?php echo $is_editing ? esc_attr( $editing_form['subject_tpl'] ) : ''; ?>" />
 						<span class="description"><?php esc_html_e( 'Use {field_name} for any submitted field, or {site_name} for your site name.', 'form-handler-wp' ); ?></span>
 					</td>
 				</tr>
@@ -238,7 +279,8 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 					<th scope="row"><label for="fhw_reply_to_field"><?php esc_html_e( 'Reply-To Field Name', 'form-handler-wp' ); ?></label></th>
 					<td>
 						<input type="text" id="fhw_reply_to_field" name="reply_to_field"
-							placeholder="email" class="regular-text" />
+							placeholder="email" class="regular-text"
+							value="<?php echo $is_editing ? esc_attr( $editing_form['reply_to_field'] ) : ''; ?>" />
 						<span class="description"><?php esc_html_e( 'POST field name whose value will be used as Reply-To (must be an email field).', 'form-handler-wp' ); ?></span>
 					</td>
 				</tr>
@@ -247,18 +289,28 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 					<td>
 						<div class="fhw-field-schema-wrap">
 							<div id="fhw-field-rows" class="fhw-field-rows">
+								<?php
+								$schema_rows = ( $is_editing && ! empty( $editing_form['field_schema'] ) ) ? $editing_form['field_schema'] : array(
+									array(
+										'field_name' => '',
+										'field_type' => 'text',
+									),
+								);
+								$field_types = array( 'text', 'email', 'textarea', 'url', 'number', 'checkbox' );
+								foreach ( $schema_rows as $row_idx => $schema_row ) :
+									$row_name = sanitize_key( $schema_row['field_name'] ?? '' );
+									$row_type = sanitize_key( $schema_row['field_type'] ?? 'text' );
+									?>
 								<div class="fhw-field-row">
-									<input type="text" name="field_schema[0][field_name]" placeholder="field_name" pattern="[a-z0-9_]+" />
-									<select name="field_schema[0][field_type]">
-										<option value="text">text</option>
-										<option value="email">email</option>
-										<option value="textarea">textarea</option>
-										<option value="url">url</option>
-										<option value="number">number</option>
-										<option value="checkbox">checkbox</option>
+									<input type="text" name="field_schema[<?php echo esc_attr( (string) $row_idx ); ?>][field_name]" placeholder="field_name" pattern="[a-z0-9_]+" value="<?php echo esc_attr( $row_name ); ?>" />
+									<select name="field_schema[<?php echo esc_attr( (string) $row_idx ); ?>][field_type]">
+										<?php foreach ( $field_types as $ft ) : ?>
+											<option value="<?php echo esc_attr( $ft ); ?>"<?php selected( $row_type, $ft ); ?>><?php echo esc_html( $ft ); ?></option>
+										<?php endforeach; ?>
 									</select>
 									<button type="button" class="fhw-remove-field" aria-label="<?php esc_attr_e( 'Remove field', 'form-handler-wp' ); ?>">&times;</button>
 								</div>
+								<?php endforeach; ?>
 							</div>
 							<button type="button" id="fhw-add-field-btn" class="button button-secondary">
 								+ <?php esc_html_e( 'Add Field', 'form-handler-wp' ); ?>
@@ -272,7 +324,7 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 				<tr>
 					<th scope="row"><label for="fhw_success_message"><?php esc_html_e( 'Success Message', 'form-handler-wp' ); ?></label></th>
 					<td>
-						<textarea id="fhw_success_message" name="success_message" rows="3" class="large-text"><?php echo esc_textarea( '' ); ?></textarea>
+						<textarea id="fhw_success_message" name="success_message" rows="3" class="large-text"><?php echo $is_editing ? esc_textarea( $editing_form['success_message'] ) : ''; ?></textarea>
 						<span class="description"><?php esc_html_e( 'Shown to the user after successful submission. HTML allowed.', 'form-handler-wp' ); ?></span>
 					</td>
 				</tr>
@@ -280,7 +332,8 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 					<th scope="row"><?php esc_html_e( 'HTML Email', 'form-handler-wp' ); ?></th>
 					<td>
 						<label>
-							<input type="checkbox" name="html_email" value="1" />
+							<input type="checkbox" name="html_email" value="1"
+								<?php checked( $is_editing && '1' === $editing_form['html_email'] ); ?> />
 							<?php esc_html_e( 'Send email as HTML', 'form-handler-wp' ); ?>
 						</label>
 					</td>
@@ -289,32 +342,35 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 					<th scope="row"><?php esc_html_e( 'Auto-Reply to Submitter', 'form-handler-wp' ); ?></th>
 					<td>
 						<label>
-							<input type="checkbox" name="autoreply_enabled" value="1" id="fhw_autoreply_enabled" />
+							<input type="checkbox" name="autoreply_enabled" value="1" id="fhw_autoreply_enabled"
+								<?php checked( $is_editing && '1' === $editing_form['autoreply_enabled'] ); ?> />
 							<?php esc_html_e( 'Send a confirmation email to the person who filled out the form', 'form-handler-wp' ); ?>
 						</label>
 					</td>
 				</tr>
-				<tr class="fhw-autoreply-row">
+				<tr class="fhw-autoreply-row"<?php echo ( $is_editing && '1' === $editing_form['autoreply_enabled'] ) ? ' style="display:table-row;"' : ''; ?>>
 					<th scope="row"><label for="fhw_autoreply_to_field"><?php esc_html_e( 'Submitter Email Field', 'form-handler-wp' ); ?> <span style="color:#d63638;">*</span></label></th>
 					<td>
 						<input type="text" id="fhw_autoreply_to_field" name="autoreply_to_field"
-							placeholder="email" class="regular-text" />
+							placeholder="email" class="regular-text"
+							value="<?php echo $is_editing ? esc_attr( $editing_form['autoreply_to_field'] ) : ''; ?>" />
 						<span class="description"><?php esc_html_e( 'The field name that contains the submitter\'s email address.', 'form-handler-wp' ); ?></span>
 					</td>
 				</tr>
-				<tr class="fhw-autoreply-row">
+				<tr class="fhw-autoreply-row"<?php echo ( $is_editing && '1' === $editing_form['autoreply_enabled'] ) ? ' style="display:table-row;"' : ''; ?>>
 					<th scope="row"><label for="fhw_autoreply_subject"><?php esc_html_e( 'Confirmation Subject', 'form-handler-wp' ); ?></label></th>
 					<td>
 						<input type="text" id="fhw_autoreply_subject" name="autoreply_subject"
 							placeholder="<?php esc_attr_e( 'Thanks for contacting {site_name}!', 'form-handler-wp' ); ?>"
-							class="regular-text" />
+							class="regular-text"
+							value="<?php echo $is_editing ? esc_attr( $editing_form['autoreply_subject'] ) : ''; ?>" />
 						<span class="description"><?php esc_html_e( 'Supports {field_name} and {site_name} placeholders. Leave blank for a generic default.', 'form-handler-wp' ); ?></span>
 					</td>
 				</tr>
-				<tr class="fhw-autoreply-row">
+				<tr class="fhw-autoreply-row"<?php echo ( $is_editing && '1' === $editing_form['autoreply_enabled'] ) ? ' style="display:table-row;"' : ''; ?>>
 					<th scope="row"><label for="fhw_autoreply_message"><?php esc_html_e( 'Confirmation Message', 'form-handler-wp' ); ?></label></th>
 					<td>
-						<textarea id="fhw_autoreply_message" name="autoreply_message" rows="4" class="large-text"></textarea>
+						<textarea id="fhw_autoreply_message" name="autoreply_message" rows="4" class="large-text"><?php echo $is_editing ? esc_textarea( $editing_form['autoreply_message'] ) : ''; ?></textarea>
 						<span class="description"><?php esc_html_e( 'Supports {field_name} and {site_name} placeholders. HTML allowed. Leave blank for a generic thank-you message.', 'form-handler-wp' ); ?></span>
 					</td>
 				</tr>
@@ -322,7 +378,8 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 					<th scope="row"><label for="fhw_honeypot_field"><?php esc_html_e( 'Honeypot Field Name', 'form-handler-wp' ); ?></label></th>
 					<td>
 						<input type="text" id="fhw_honeypot_field" name="honeypot_field"
-							placeholder="website" class="regular-text" />
+							placeholder="website" class="regular-text"
+							value="<?php echo $is_editing ? esc_attr( $editing_form['honeypot_field'] ) : ''; ?>" />
 						<span class="description"><?php esc_html_e( 'Hidden field name. If filled by a bot, submission is silently discarded.', 'form-handler-wp' ); ?></span>
 					</td>
 				</tr>
@@ -330,7 +387,7 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 					<th scope="row"><label for="fhw_rate_limit"><?php esc_html_e( 'Rate Limit', 'form-handler-wp' ); ?></label></th>
 					<td>
 						<input type="number" id="fhw_rate_limit" name="rate_limit"
-							value="0" min="0" max="999" style="width:80px;" />
+							value="<?php echo $is_editing ? esc_attr( (string) $editing_form['rate_limit'] ) : '0'; ?>" min="0" max="999" style="width:80px;" />
 						<span class="description"><?php esc_html_e( 'Max submissions per IP per hour. Set to 0 to disable.', 'form-handler-wp' ); ?></span>
 					</td>
 				</tr>
@@ -340,43 +397,50 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 					</th>
 					<td>
 						<label>
-							<input type="checkbox" id="fhw_spam_filter" name="spam_filter" value="1" checked />
+							<input type="checkbox" id="fhw_spam_filter" name="spam_filter" value="1"
+							<?php checked( ! $is_editing || '1' === ( $editing_form['spam_filter'] ?? '1' ) ); ?> />
 							<?php esc_html_e( 'Enable spam filtering for this form', 'form-handler-wp' ); ?>
 						</label>
 						<span class="description"><?php esc_html_e( 'Blocks common spam patterns. Individual rules can be configured below.', 'form-handler-wp' ); ?></span>
 					</td>
 				</tr>
-				<tr class="form-field fhw-spam-rules-row">
+				<tr class="form-field fhw-spam-rules-row"<?php echo ( ! $is_editing || '1' === ( $editing_form['spam_filter'] ?? '1' ) ) ? ' style="display:table-row;"' : ''; ?>>
 					<th scope="row"><?php esc_html_e( 'Spam Rules', 'form-handler-wp' ); ?></th>
 					<td>
 						<fieldset>
 							<label style="display:block;margin-bottom:6px;">
-								<input type="checkbox" name="spam_rule_no_user_agent" value="1" checked />
+								<input type="checkbox" name="spam_rule_no_user_agent" value="1"
+								<?php checked( ! $is_editing || '1' === ( $editing_form['spam_rule_no_user_agent'] ?? '1' ) ); ?> />
 								<?php esc_html_e( 'Block requests with no browser user-agent', 'form-handler-wp' ); ?>
 								<span style="display:block;color:#646970;font-size:12px;"><?php esc_html_e( 'Almost all bots omit this. Safe to keep on.', 'form-handler-wp' ); ?></span>
 							</label>
 							<label style="display:block;margin-bottom:6px;">
-								<input type="checkbox" name="spam_rule_all_digits" value="1" checked />
+								<input type="checkbox" name="spam_rule_all_digits" value="1"
+								<?php checked( ! $is_editing || '1' === ( $editing_form['spam_rule_all_digits'] ?? '1' ) ); ?> />
 								<?php esc_html_e( 'Block submissions where a field contains only digits (over 10 chars)', 'form-handler-wp' ); ?>
 								<span style="display:block;color:#646970;font-size:12px;"><?php esc_html_e( 'Turn off if you expect long numeric inputs (e.g. account numbers).', 'form-handler-wp' ); ?></span>
 							</label>
 							<label style="display:block;margin-bottom:6px;">
-								<input type="checkbox" name="spam_rule_no_spaces" value="1" checked />
+								<input type="checkbox" name="spam_rule_no_spaces" value="1"
+								<?php checked( ! $is_editing || '1' === ( $editing_form['spam_rule_no_spaces'] ?? '1' ) ); ?> />
 								<?php esc_html_e( 'Block single-word messages (no spaces, over 10 chars)', 'form-handler-wp' ); ?>
 								<span style="display:block;color:#646970;font-size:12px;"><?php esc_html_e( 'Turn off if you expect very short or single-word responses.', 'form-handler-wp' ); ?></span>
 							</label>
 							<label style="display:block;margin-bottom:6px;">
-								<input type="checkbox" name="spam_rule_ai_greeting" value="1" checked />
+								<input type="checkbox" name="spam_rule_ai_greeting" value="1"
+								<?php checked( ! $is_editing || '1' === ( $editing_form['spam_rule_ai_greeting'] ?? '1' ) ); ?> />
 								<?php esc_html_e( 'Block AI-generated greeting openers (&#8220;Hi! I just&#8230;&#8221;, &#8220;Hello there! I just&#8230;&#8221;)', 'form-handler-wp' ); ?>
 								<span style="display:block;color:#646970;font-size:12px;"><?php esc_html_e( 'Rarely triggers on real humans. Safe to keep on.', 'form-handler-wp' ); ?></span>
 							</label>
 							<label style="display:block;margin-bottom:6px;">
-								<input type="checkbox" name="spam_rule_buy_link" value="1" checked />
+								<input type="checkbox" name="spam_rule_buy_link" value="1"
+								<?php checked( ! $is_editing || '1' === ( $editing_form['spam_rule_buy_link'] ?? '1' ) ); ?> />
 								<?php esc_html_e( 'Block messages containing &#8220;buy&#8221; and a hyperlink', 'form-handler-wp' ); ?>
 								<span style="display:block;color:#646970;font-size:12px;"><?php esc_html_e( 'Turn off if your form legitimately accepts messages with product links.', 'form-handler-wp' ); ?></span>
 							</label>
 							<label style="display:block;margin-bottom:6px;">
-								<input type="checkbox" name="spam_rule_spammy_email_url" value="1" checked />
+								<input type="checkbox" name="spam_rule_spammy_email_url" value="1"
+								<?php checked( ! $is_editing || '1' === ( $editing_form['spam_rule_spammy_email_url'] ?? '1' ) ); ?> />
 								<?php esc_html_e( 'Block firstname_lastname@gmail/yahoo/hotmail.com emails combined with a URL in any field', 'form-handler-wp' ); ?>
 								<span style="display:block;color:#646970;font-size:12px;"><?php echo wp_kses( __( '<strong>Turn off if your form has a &#8220;website&#8221; or &#8220;URL&#8221; field</strong> &#8212; this combo can trigger on real users.', 'form-handler-wp' ), array( 'strong' => array() ) ); ?></span>
 							</label>
@@ -385,7 +449,14 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 				</tr>
 			</table>
 
-			<?php submit_button( __( 'Add Form Handler', 'form-handler-wp' ) ); ?>
+			<?php
+			if ( $is_editing ) {
+				submit_button( __( 'Update Form', 'form-handler-wp' ), 'primary', 'submit', false );
+				echo ' <a href="' . esc_url( admin_url( 'admin.php?page=form-handler-wp&tab=forms' ) ) . '" class="button" style="margin-left:8px;">' . esc_html__( 'Cancel', 'form-handler-wp' ) . '</a>';
+			} else {
+				submit_button( __( 'Add Form Handler', 'form-handler-wp' ) );
+			}
+			?>
 		</form>
 	</div>
 
