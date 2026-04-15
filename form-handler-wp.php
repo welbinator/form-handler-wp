@@ -3,7 +3,7 @@
  * Plugin Name:       Form Handler WP
  * Plugin URI:        https://github.com/welbinator/form-handler-wp
  * Description:       Secure AJAX form handling with Brevo transactional email. Build your own forms; we handle the sending.
- * Version:           1.0.7
+ * Version:           1.0.8
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            James Welbes
@@ -23,13 +23,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'FHW_VERSION', '1.0.7' );
+define( 'FHW_VERSION', '1.0.8' );
 define( 'FHW_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FHW_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'FHW_PLUGIN_FILE', __FILE__ );
 define( 'FHW_LOG_TABLE', 'fhw_email_log' );
 
 // Load required files.
+require_once FHW_PLUGIN_DIR . 'includes/class-fhw-crypto.php';
 require_once FHW_PLUGIN_DIR . 'includes/interface-fhw-mailer.php';
 require_once FHW_PLUGIN_DIR . 'includes/class-fhw-brevo-api.php';
 require_once FHW_PLUGIN_DIR . 'includes/class-fhw-logger.php';
@@ -38,11 +39,39 @@ require_once FHW_PLUGIN_DIR . 'includes/class-fhw-handler.php';
 require_once FHW_PLUGIN_DIR . 'includes/class-fhw-settings.php';
 
 /**
- * Activation hook: create DB table.
+ * Activation hook: create DB table and migrate legacy base64 API key.
  */
 function fhw_activate() {
 	FHW_Logger::create_table();
+	fhw_maybe_migrate_api_key();
 	flush_rewrite_rules();
+}
+
+/**
+ * Migrate a legacy base64-encoded API key to AES-256 encryption.
+ *
+ * Safe to run repeatedly — checks whether migration is needed first.
+ * Called on plugin activation and on admin_init (to catch sites that
+ * activated before this version was released).
+ */
+function fhw_maybe_migrate_api_key() {
+	// If key is stored as a constant, nothing to migrate in the DB.
+	if ( defined( 'FHW_BREVO_API_KEY' ) ) {
+		return;
+	}
+
+	$stored = get_option( 'fhw_brevo_api_key_enc', '' );
+	if ( '' === $stored ) {
+		return;
+	}
+
+	// Check if this looks like a legacy base64 value (not yet AES-encrypted).
+	if ( FHW_Crypto::is_legacy_base64( $stored ) ) {
+		$migrated = FHW_Crypto::migrate_from_base64( $stored );
+		if ( false !== $migrated ) {
+			update_option( 'fhw_brevo_api_key_enc', $migrated );
+		}
+	}
 }
 register_activation_hook( __FILE__, 'fhw_activate' );
 
@@ -95,6 +124,7 @@ function fhw_init() {
 	}
 }
 add_action( 'init', 'fhw_init' );
+add_action( 'admin_init', 'fhw_maybe_migrate_api_key' );
 
 /**
  * Generic AJAX handler — dispatches to FHW_Handler.
