@@ -334,6 +334,18 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 						<span class="description"><?php esc_html_e( 'Max submissions per IP per hour. Set to 0 to disable.', 'form-handler-wp' ); ?></span>
 					</td>
 				</tr>
+				<tr class="form-field">
+					<th scope="row">
+						<label for="fhw_spam_filter"><?php esc_html_e( 'Spam Filter', 'form-handler-wp' ); ?></label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" id="fhw_spam_filter" name="spam_filter" value="1" checked />
+							<?php esc_html_e( 'Enable spam filtering for this form', 'form-handler-wp' ); ?>
+						</label>
+						<span class="description"><?php esc_html_e( 'Blocks common spam patterns (no user-agent, all-digit fields, AI greeting openers, etc.)', 'form-handler-wp' ); ?></span>
+					</td>
+				</tr>
 			</table>
 
 			<?php submit_button( __( 'Add Form Handler', 'form-handler-wp' ) ); ?>
