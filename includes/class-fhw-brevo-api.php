@@ -41,11 +41,11 @@ class FHW_Brevo_API implements FHW_Mailer {
 			}
 		}
 
-		// Fall back to option (stored base64-encoded for light obfuscation).
+		// Fall back to option (stored AES-256-CBC encrypted).
 		$stored = get_option( 'fhw_brevo_api_key_enc', '' );
 		if ( '' !== $stored ) {
-			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
-			return base64_decode( $stored );
+			$decrypted = FHW_Crypto::decrypt( $stored );
+			return ( false !== $decrypted ) ? $decrypted : '';
 		}
 
 		return '';

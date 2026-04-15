@@ -108,12 +108,14 @@ class FHW_Settings {
 
 		check_admin_referer( 'fhw_brevo_settings', 'fhw_brevo_nonce' );
 
-		// API key — store base64-encoded.
+		// API key — store AES-256-CBC encrypted.
 		if ( isset( $_POST['fhw_brevo_api_key'] ) ) {
 			$raw_key = sanitize_text_field( wp_unslash( $_POST['fhw_brevo_api_key'] ) );
 			if ( '' !== $raw_key && '••••••••••••••••' !== $raw_key ) {
-				// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
-				update_option( 'fhw_brevo_api_key_enc', base64_encode( $raw_key ) );
+				$encrypted = FHW_Crypto::encrypt( $raw_key );
+				if ( false !== $encrypted ) {
+					update_option( 'fhw_brevo_api_key_enc', $encrypted );
+				}
 			}
 		}
 

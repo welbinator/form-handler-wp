@@ -1,0 +1,7 @@
+suite_namespace: Tests\Unit
+actor: UnitTester
+path: Unit
+modules:
+  enabled:
+    - Asserts
+bootstrap: ../_bootstrap.php

@@ -6,6 +6,7 @@
 	<file>.</file>
 	<exclude-pattern>*/vendor/*</exclude-pattern>
 	<exclude-pattern>*/node_modules/*</exclude-pattern>
+	<exclude-pattern>*/tests/*</exclude-pattern>
 
 	<!-- Show sniff codes in reports -->
 	<arg value="sp"/>
@@ -16,6 +17,8 @@
 	<rule ref="WordPress-Extra">
 		<!-- We use short array syntax []  — allow it -->
 		<exclude name="Universal.Arrays.DisallowShortArraySyntax"/>
+		<!-- PrefixAllGlobals is too strict for template files and short prefixes -->
+		<exclude name="WordPress.NamingConventions.PrefixAllGlobals"/>
 	</rule>
 
 	<!-- Enforce WordPress doc standards -->

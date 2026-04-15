@@ -12,7 +12,7 @@ final class GeneratedConfig
 	public const EXTENSIONS = array (
   'szepeviktor/phpstan-wordpress' => 
   array (
-    'install_path' => '/var/www/html/vendor/szepeviktor/phpstan-wordpress',
+    'install_path' => '/var/www/html/wp-content/plugins/form-handler-wp/vendor/szepeviktor/phpstan-wordpress',
     'relative_install_path' => '../../../szepeviktor/phpstan-wordpress',
     'extra' => 
     array (

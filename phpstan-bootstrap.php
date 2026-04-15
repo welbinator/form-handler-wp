@@ -2,6 +2,8 @@
 /**
  * PHPStan bootstrap: define plugin constants so static analysis can resolve them.
  * This file is NOT loaded at runtime — only used by PHPStan.
+ *
+ * @package Form_Handler_WP
  */
 
 define( 'FHW_VERSION', '1.0.6' );
