@@ -873,8 +873,92 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 					<td><code class="fhw-action-code">&lt;div data-fhw-status&gt;&lt;/div&gt;</code></td>
 					<td><?php esc_html_e( 'Place inside your form to control exactly where success/error messages appear.', 'form-handler-wp' ); ?></td>
 				</tr>
+				<tr>
+					<td><code class="fhw-action-code">data-fhw-loading-text="..."</code> <?php esc_html_e( '(on submit button)', 'form-handler-wp' ); ?></td>
+					<td><?php esc_html_e( 'Text shown on the submit button while the request is in flight. Defaults to &#8220;Sending&#8230;&#8221;. The button is disabled automatically during submission.', 'form-handler-wp' ); ?></td>
+				</tr>
 			</tbody>
 		</table>
+	</div>
+
+	<div class="fhw-card">
+		<h2><?php esc_html_e( 'Custom Events &amp; Extensibility', 'form-handler-wp' ); ?></h2>
+		<p><?php esc_html_e( 'The plugin fires custom DOM events on the form element after each submission. Use these to run your own JavaScript &#8212; analytics tracking, redirects, modals, conditional logic &#8212; without touching the plugin.', 'form-handler-wp' ); ?></p>
+		<table class="fhw-forms-table">
+			<thead>
+				<tr>
+					<th><?php esc_html_e( 'Event', 'form-handler-wp' ); ?></th>
+					<th><?php esc_html_e( 'When it fires', 'form-handler-wp' ); ?></th>
+					<th><?php esc_html_e( 'event.detail', 'form-handler-wp' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td><code class="fhw-action-code">fhw:submit</code></td>
+					<td><?php esc_html_e( 'Immediately when the form is submitted (before the AJAX request).', 'form-handler-wp' ); ?></td>
+					<td><code class="fhw-action-code">{ action }</code></td>
+				</tr>
+				<tr>
+					<td><code class="fhw-action-code">fhw:success</code></td>
+					<td><?php esc_html_e( 'After a successful submission and email send.', 'form-handler-wp' ); ?></td>
+					<td><code class="fhw-action-code">{ action, message, response }</code></td>
+				</tr>
+				<tr>
+					<td><code class="fhw-action-code">fhw:error</code></td>
+					<td><?php esc_html_e( 'After a failed submission (server error or network failure).', 'form-handler-wp' ); ?></td>
+					<td><code class="fhw-action-code">{ action, message, response }</code></td>
+				</tr>
+			</tbody>
+		</table>
+		<p style="margin-top:16px;"><?php esc_html_e( 'All events bubble, so you can listen on document to catch any form on the page.', 'form-handler-wp' ); ?></p>
+		<p><?php esc_html_e( 'Example &#8212; fire a Google Analytics event on success:', 'form-handler-wp' ); ?></p>
+		<pre style="background:#f6f7f7;padding:16px;border-radius:4px;overflow:auto;font-size:13px;">document.querySelector( &#39;[data-fhw-form=&quot;contact_form&quot;]&#39; )
+	.addEventListener( &#39;fhw:success&#39;, function( e ) {
+	gtag( &#39;event&#39;, &#39;form_submit&#39;, { form_id: e.detail.action } );
+	} );</pre>
+		<p><?php esc_html_e( 'Example &#8212; redirect to a thank-you page after success:', 'form-handler-wp' ); ?></p>
+		<pre style="background:#f6f7f7;padding:16px;border-radius:4px;overflow:auto;font-size:13px;">document.querySelector( &#39;[data-fhw-form=&quot;contact_form&quot;]&#39; )
+	.addEventListener( &#39;fhw:success&#39;, function() {
+	window.location.href = &#39;/thank-you/&#39;;
+	} );</pre>
+		<p><?php esc_html_e( 'Example &#8212; show a custom modal overlay on success:', 'form-handler-wp' ); ?></p>
+		<pre style="background:#f6f7f7;padding:16px;border-radius:4px;overflow:auto;font-size:13px;">document.querySelector( &#39;[data-fhw-form=&quot;contact_form&quot;]&#39; )
+	.addEventListener( &#39;fhw:success&#39;, function( e ) {
+	document.getElementById( &#39;my-modal&#39; ).style.display = &#39;flex&#39;;
+	document.getElementById( &#39;my-modal-msg&#39; ).textContent = e.detail.message;
+	} );</pre>
+	</div>
+
+	<div class="fhw-card">
+		<h2><?php esc_html_e( 'Accessibility', 'form-handler-wp' ); ?></h2>
+		<p><?php esc_html_e( 'The plugin handles the basics automatically:', 'form-handler-wp' ); ?></p>
+		<ul style="list-style:disc;margin-left:20px;line-height:1.8;">
+			<li><?php echo wp_kses( __( 'The status element has <code>role="alert"</code> and <code>aria-live="polite"</code> &#8212; screen readers will announce success and error messages without needing extra markup.', 'form-handler-wp' ), array( 'code' => array() ) ); ?></li>
+			<li><?php esc_html_e( 'After submission, keyboard focus is moved to the status element so screen reader users land directly on the result.', 'form-handler-wp' ); ?></li>
+			<li><?php esc_html_e( 'The submit button is disabled while the request is in flight to prevent duplicate submissions.', 'form-handler-wp' ); ?></li>
+		</ul>
+		<p><?php esc_html_e( 'For full WCAG 2.1 AA compliance you should also:', 'form-handler-wp' ); ?></p>
+		<ul style="list-style:disc;margin-left:20px;line-height:1.8;">
+			<li><?php esc_html_e( 'Associate every input with a visible label using the for/id pattern or aria-label.', 'form-handler-wp' ); ?></li>
+			<li><?php esc_html_e( 'Use the fhw:error event to add aria-describedby or aria-invalid attributes to specific fields with validation errors.', 'form-handler-wp' ); ?></li>
+			<li><?php esc_html_e( 'Ensure sufficient colour contrast on the success/error status messages.', 'form-handler-wp' ); ?></li>
+		</ul>
+	</div>
+
+	<div class="fhw-card">
+		<h2><?php esc_html_e( 'Custom Validation', 'form-handler-wp' ); ?></h2>
+		<p><?php esc_html_e( 'Native HTML5 validation (required, type="email", pattern, minlength, etc.) runs before the plugin intercepts the submit &#8212; no extra work needed for basic validation.', 'form-handler-wp' ); ?></p>
+		<p><?php esc_html_e( 'For custom validation logic (e.g. matching two fields, conditional rules), use the fhw:submit event to run checks before the AJAX fires. Since the event is not cancellable, the recommended pattern is to prevent the native submit yourself:', 'form-handler-wp' ); ?></p>
+		<pre style="background:#f6f7f7;padding:16px;border-radius:4px;overflow:auto;font-size:13px;">var myForm = document.querySelector( &#39;[data-fhw-form=&quot;contact_form&quot;]&#39; );
+
+myForm.addEventListener( &#39;submit&#39;, function( e ) {
+	var email    = myForm.querySelector( &#39;[name=&quot;email&quot;]&#39; ).value;
+	var confirm  = myForm.querySelector( &#39;[name=&quot;email_confirm&quot;]&#39; ).value;
+	if ( email !== confirm ) {
+	e.stopImmediatePropagation(); // Prevent plugin from handling submit.
+	document.getElementById( &#39;email-error&#39; ).textContent = &#39;Emails do not match.&#39;;
+	}
+}, true ); // &lt;-- useCapture: true runs before the plugin&#39;s listener</pre>
 	</div>
 
 	<div class="fhw-card">
