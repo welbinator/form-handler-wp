@@ -27,6 +27,7 @@ class FHW_Settings {
 		add_action( 'admin_post_fhw_clear_log', array( $this, 'clear_log' ) );
 		add_action( 'admin_post_fhw_delete_submission', array( $this, 'delete_submission' ) );
 		add_action( 'admin_post_fhw_clear_submissions', array( $this, 'clear_submissions' ) );
+		add_action( 'admin_post_fhw_update_form', array( $this, 'update_form' ) );
 		add_action( 'wp_ajax_fhw_send_test_email', array( $this, 'ajax_send_test_email' ) );
 	}
 
@@ -275,6 +276,51 @@ class FHW_Settings {
 		}
 
 		wp_safe_redirect( add_query_arg( $redirect_args, admin_url( 'admin.php' ) ) );
+		exit;
+	}
+
+	/**
+	 * Handle Update Form handler POST.
+	 */
+	public function update_form() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Unauthorized.', 'form-handler-wp' ) );
+		}
+		check_admin_referer( 'fhw_update_form', 'fhw_update_form_nonce' );
+
+		$original_action = isset( $_POST['original_action'] ) ? sanitize_key( wp_unslash( $_POST['original_action'] ) ) : '';
+		if ( '' === $original_action ) {
+			wp_die( esc_html__( 'Invalid form.', 'form-handler-wp' ) );
+		}
+
+		$registry = new FHW_Form_Registry();
+		// phpcs:ignore WordPress.Security.NonceVerification -- verified above
+		$result = $registry->update_form( $original_action, wp_unslash( $_POST ) );
+
+		if ( is_wp_error( $result ) ) {
+			wp_safe_redirect(
+				add_query_arg(
+					array(
+						'page'  => 'form-handler-wp',
+						'tab'   => 'forms',
+						'error' => $result->get_error_code(),
+					),
+					admin_url( 'admin.php' )
+				)
+			);
+			exit;
+		}
+
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'    => 'form-handler-wp',
+					'tab'     => 'forms',
+					'updated' => '1',
+				),
+				admin_url( 'admin.php' )
+			)
+		);
 		exit;
 	}
 
