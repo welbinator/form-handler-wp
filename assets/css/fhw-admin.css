@@ -311,8 +311,136 @@
 }
 
 /* -----------------------------------------------------------------------
-   Notice tweaks
+   Submissions modal
 ----------------------------------------------------------------------- */
-.fhw-wrap .notice {
-	margin: 0 0 20px;
+.fhw-sub-row:hover td {
+	background: #f0f6fc;
+	cursor: pointer;
 }
+
+#fhw-sub-modal {
+	position: fixed;
+	inset: 0;
+	z-index: 100000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+#fhw-sub-modal-backdrop {
+	position: absolute;
+	inset: 0;
+	background: rgba(0,0,0,.5);
+}
+
+#fhw-sub-modal-box {
+	position: relative;
+	z-index: 1;
+	background: #fff;
+	border-radius: 6px;
+	box-shadow: 0 8px 32px rgba(0,0,0,.22);
+	width: 600px;
+	max-width: calc(100vw - 40px);
+	max-height: calc(100vh - 60px);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+#fhw-sub-modal-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 16px 20px;
+	border-bottom: 1px solid #e0e0e0;
+	background: #f6f7f7;
+}
+
+#fhw-sub-modal-header h2 {
+	margin: 0;
+	font-size: 15px;
+	border: none;
+	padding: 0;
+}
+
+#fhw-sub-modal-close {
+	background: none;
+	border: none;
+	font-size: 22px;
+	line-height: 1;
+	cursor: pointer;
+	color: #787c82;
+	padding: 0 4px;
+}
+
+#fhw-sub-modal-close:hover {
+	color: #1d2327;
+}
+
+#fhw-sub-modal-meta {
+	display: flex;
+	gap: 16px;
+	align-items: center;
+	padding: 12px 20px;
+	background: #fafafa;
+	border-bottom: 1px solid #f0f0f1;
+	font-size: 12px;
+	color: #50575e;
+}
+
+#fhw-modal-form {
+	font-family: monospace;
+	background: #f0f0f1;
+	padding: 2px 7px;
+	border-radius: 3px;
+	font-size: 12px;
+	color: #1d2327;
+}
+
+#fhw-sub-modal-fields {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 13px;
+	flex: 1;
+	overflow-y: auto;
+	display: block;
+}
+
+#fhw-sub-modal-fields th {
+	text-align: left;
+	padding: 8px 20px;
+	background: #f6f7f7;
+	border-bottom: 1px solid #f0f0f1;
+	width: 160px;
+	white-space: nowrap;
+	vertical-align: top;
+	color: #50575e;
+	font-weight: 600;
+}
+
+#fhw-sub-modal-fields td {
+	padding: 8px 20px;
+	border-bottom: 1px solid #f0f0f1;
+	vertical-align: top;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+#fhw-sub-modal-fields tr:last-child th,
+#fhw-sub-modal-fields tr:last-child td {
+	border-bottom: none;
+}
+
+#fhw-sub-modal-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px 20px;
+	border-top: 1px solid #e0e0e0;
+	background: #f6f7f7;
+}
+
+body.fhw-modal-open {
+	overflow: hidden;
+}
+

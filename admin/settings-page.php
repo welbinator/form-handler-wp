@@ -432,20 +432,26 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 							++$summary_count;
 						}
 						$summary = implode( ' | ', $summary_parts );
+
+						// Build data attributes for the modal.
+						$modal_fields = array();
+						foreach ( $decoded_fields as $f_key => $f_val ) {
+							$modal_fields[] = array(
+								'key' => (string) $f_key,
+								'val' => (string) $f_val,
+							);
+						}
 						?>
-						<tr>
+						<tr class="fhw-sub-row"
+							data-id="<?php echo esc_attr( (string) $entry_id ); ?>"
+							data-date="<?php echo esc_attr( $sub_entry['submitted_at'] ); ?>"
+							data-form="<?php echo esc_attr( $sub_entry['action_name'] ); ?>"
+							data-status="<?php echo esc_attr( $sub_entry['email_status'] ); ?>"
+							data-fields="<?php echo esc_attr( wp_json_encode( $modal_fields ) ); ?>"
+							style="cursor:pointer;">
 							<td><?php echo esc_html( $sub_entry['submitted_at'] ); ?></td>
 							<td><code><?php echo esc_html( $sub_entry['action_name'] ); ?></code></td>
-							<td>
-								<?php echo wp_kses( $summary, array() ); ?>
-								<button type="button"
-									class="button button-small fhw-sub-view-toggle"
-									data-target="fhw-sub-detail-<?php echo esc_attr( (string) $entry_id ); ?>"
-									aria-expanded="false"
-									style="margin-left:6px;">
-									<?php esc_html_e( 'View', 'form-handler-wp' ); ?>
-								</button>
-							</td>
+							<td><?php echo wp_kses( $summary, array() ); ?></td>
 							<td>
 								<span class="fhw-log-<?php echo esc_attr( $sub_entry['email_status'] ); ?>">
 									<?php echo esc_html( $sub_entry['email_status'] ); ?>
@@ -454,38 +460,49 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 							<td>
 								<form method="post"
 									action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"
+									class="fhw-delete-sub-form"
 									style="display:inline;">
 									<input type="hidden" name="action" value="fhw_delete_submission" />
 									<input type="hidden" name="submission_id" value="<?php echo esc_attr( (string) $entry_id ); ?>" />
 									<input type="hidden" name="paged" value="<?php echo esc_attr( (string) $sub_paged ); ?>" />
 									<input type="hidden" name="action_name_filter" value="<?php echo esc_attr( $sub_filter ); ?>" />
 									<?php wp_nonce_field( 'fhw_delete_submission_' . $entry_id, 'fhw_delete_submission_nonce' ); ?>
-									<button type="submit" class="button button-small button-link-delete"
-										onclick="return confirm('<?php echo esc_js( __( 'Delete this submission?', 'form-handler-wp' ) ); ?>')">
+									<button type="submit" class="button button-small button-link-delete fhw-delete-sub-btn">
 										<?php esc_html_e( 'Delete', 'form-handler-wp' ); ?>
 									</button>
 								</form>
 							</td>
 						</tr>
-						<tr id="fhw-sub-detail-<?php echo esc_attr( (string) $entry_id ); ?>" style="display:none;">
-							<td colspan="5">
-								<table class="fhw-sub-fields-table" style="width:100%;border-collapse:collapse;">
-									<?php if ( empty( $decoded_fields ) ) : ?>
-										<tr><td><?php esc_html_e( '(no fields)', 'form-handler-wp' ); ?></td></tr>
-									<?php else : ?>
-										<?php foreach ( $decoded_fields as $field_key => $field_val ) : ?>
-											<tr>
-												<th style="text-align:left;padding:4px 8px;background:#f5f5f5;width:160px;"><?php echo esc_html( $field_key ); ?></th>
-												<td style="padding:4px 8px;"><?php echo esc_html( (string) $field_val ); ?></td>
-											</tr>
-										<?php endforeach; ?>
-									<?php endif; ?>
-								</table>
-							</td>
-						</tr>
 					<?php endforeach; ?>
 				</tbody>
 			</table>
+
+			<?php // Modal overlay. ?>
+			<div id="fhw-sub-modal" role="dialog" aria-modal="true" aria-labelledby="fhw-modal-title" style="display:none;">
+				<div id="fhw-sub-modal-backdrop"></div>
+				<div id="fhw-sub-modal-box">
+					<div id="fhw-sub-modal-header">
+						<h2 id="fhw-modal-title"><?php esc_html_e( 'Submission Detail', 'form-handler-wp' ); ?></h2>
+						<button type="button" id="fhw-sub-modal-close" aria-label="<?php esc_attr_e( 'Close', 'form-handler-wp' ); ?>">&times;</button>
+					</div>
+					<div id="fhw-sub-modal-meta">
+						<span id="fhw-modal-form"></span>
+						<span id="fhw-modal-date"></span>
+						<span id="fhw-modal-status"></span>
+					</div>
+					<table id="fhw-sub-modal-fields">
+						<tbody></tbody>
+					</table>
+					<div id="fhw-sub-modal-footer">
+						<button type="button" id="fhw-modal-delete-btn" class="button button-link-delete">
+							<?php esc_html_e( 'Delete Submission', 'form-handler-wp' ); ?>
+						</button>
+						<button type="button" id="fhw-sub-modal-close-footer" class="button">
+							<?php esc_html_e( 'Close', 'form-handler-wp' ); ?>
+						</button>
+					</div>
+				</div>
+			</div>
 
 			<?php if ( $sub_total_pages > 1 ) : ?>
 				<div class="fhw-pagination" style="margin-top:12px;">
@@ -538,24 +555,92 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 		<?php endif; ?>
 	</div>
 
-	<?php // Inline script for View toggle. ?>
+	<?php // Modal + submissions JS. ?>
 	<script>
 	( function() {
+		var modal    = document.getElementById( 'fhw-sub-modal' );
+		var backdrop = document.getElementById( 'fhw-sub-modal-backdrop' );
+		var closeBtn = document.getElementById( 'fhw-sub-modal-close' );
+		var closeFtr = document.getElementById( 'fhw-sub-modal-close-footer' );
+		var delBtn   = document.getElementById( 'fhw-modal-delete-btn' );
+		var tbody    = document.querySelector( '#fhw-sub-modal-fields tbody' );
+		var currentDeleteForm = null;
+
+		if ( ! modal ) { return; }
+
+		function openModal( row ) {
+			var fields = [];
+			try { fields = JSON.parse( row.dataset.fields || '[]' ); } catch(e) {}
+
+			document.getElementById( 'fhw-modal-form' ).textContent   = row.dataset.form   || '';
+			document.getElementById( 'fhw-modal-date' ).textContent   = row.dataset.date   || '';
+
+			var statusEl  = document.getElementById( 'fhw-modal-status' );
+			var status    = row.dataset.status || '';
+			statusEl.textContent  = status;
+			statusEl.className    = 'fhw-log-' + status;
+
+			// Populate fields table.
+			tbody.innerHTML = '';
+			if ( fields.length ) {
+				fields.forEach( function( f ) {
+					var tr = document.createElement( 'tr' );
+					var th = document.createElement( 'th' );
+					var td = document.createElement( 'td' );
+					th.textContent = f.key;
+					td.textContent = f.val;
+					tr.appendChild( th );
+					tr.appendChild( td );
+					tbody.appendChild( tr );
+				} );
+			} else {
+				var tr = document.createElement( 'tr' );
+				var td = document.createElement( 'td' );
+				td.setAttribute( 'colspan', '2' );
+				td.textContent = '<?php echo esc_js( __( '(no fields)', 'form-handler-wp' ) ); ?>';
+				tr.appendChild( td );
+				tbody.appendChild( tr );
+			}
+
+			// Wire delete button to the hidden form in this row.
+			currentDeleteForm = row.querySelector( '.fhw-delete-sub-form' );
+
+			modal.style.display = 'flex';
+			document.body.classList.add( 'fhw-modal-open' );
+			closeBtn.focus();
+		}
+
+		function closeModal() {
+			modal.style.display = 'none';
+			document.body.classList.remove( 'fhw-modal-open' );
+			currentDeleteForm = null;
+		}
+
+		// Open on row click (but not on the delete button itself).
 		document.addEventListener( 'click', function( e ) {
-			if ( ! e.target.classList.contains( 'fhw-sub-view-toggle' ) ) {
-				return;
+			var row = e.target.closest( '.fhw-sub-row' );
+			if ( ! row ) { return; }
+			if ( e.target.closest( '.fhw-delete-sub-form' ) ) { return; }
+			openModal( row );
+		} );
+
+		// Close on backdrop / close buttons.
+		backdrop.addEventListener( 'click', closeModal );
+		closeBtn.addEventListener( 'click', closeModal );
+		closeFtr.addEventListener( 'click', closeModal );
+
+		// Escape key closes.
+		document.addEventListener( 'keydown', function( e ) {
+			if ( 'Escape' === e.key && modal.style.display !== 'none' ) {
+				closeModal();
 			}
-			var btn    = e.target;
-			var target = document.getElementById( btn.dataset.target );
-			if ( ! target ) {
-				return;
-			}
-			var expanded = 'true' === btn.getAttribute( 'aria-expanded' );
-			btn.setAttribute( 'aria-expanded', expanded ? 'false' : 'true' );
-			target.style.display = expanded ? 'none' : '';
-			btn.textContent = expanded ?
-				'<?php echo esc_js( __( 'View', 'form-handler-wp' ) ); ?>' :
-				'<?php echo esc_js( __( 'Hide', 'form-handler-wp' ) ); ?>';
+		} );
+
+		// Delete button inside modal submits the row's delete form.
+		delBtn.addEventListener( 'click', function() {
+			if ( ! currentDeleteForm ) { return; }
+			if ( ! confirm( '<?php echo esc_js( __( 'Delete this submission?', 'form-handler-wp' ) ); ?>' ) ) { return; }
+			currentDeleteForm.submit();
 		} );
 	}() );
 	</script>
