@@ -160,10 +160,10 @@ class FHW_Form_Registry {
 	public function sanitize_form_data( array $data ) {
 		$sanitized = array(
 			'action_name'        => sanitize_key( $data['action_name'] ?? '' ),
-			'to_emails'          => sanitize_text_field( $data['to_emails'] ?? '' ),
-			'subject_tpl'        => sanitize_text_field( $data['subject_tpl'] ?? '' ),
+			'to_emails'          => sanitize_text_field( wp_unslash( $data['to_emails'] ?? '' ) ),
+			'subject_tpl'        => sanitize_text_field( wp_unslash( $data['subject_tpl'] ?? '' ) ),
 			'reply_to_field'     => sanitize_key( $data['reply_to_field'] ?? '' ),
-			'success_message'    => wp_kses_post( $data['success_message'] ?? '' ),
+			'success_message'    => wp_kses_post( wp_unslash( $data['success_message'] ?? '' ) ),
 			'html_email'         => ! empty( $data['html_email'] ) ? '1' : '0',
 			'honeypot_field'     => sanitize_key( $data['honeypot_field'] ?? '' ),
 			'rate_limit'         => absint( $data['rate_limit'] ?? 0 ),
@@ -172,8 +172,8 @@ class FHW_Form_Registry {
 			// Auto-reply fields.
 			'autoreply_enabled'  => ! empty( $data['autoreply_enabled'] ) ? '1' : '0',
 			'autoreply_to_field' => sanitize_key( $data['autoreply_to_field'] ?? '' ),
-			'autoreply_subject'  => sanitize_text_field( $data['autoreply_subject'] ?? '' ),
-			'autoreply_message'  => wp_kses_post( $data['autoreply_message'] ?? '' ),
+			'autoreply_subject'  => sanitize_text_field( wp_unslash( $data['autoreply_subject'] ?? '' ) ),
+			'autoreply_message'  => wp_kses_post( wp_unslash( $data['autoreply_message'] ?? '' ) ),
 		);
 
 		// Sanitize field schema (repeatable rows).
