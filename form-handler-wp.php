@@ -3,7 +3,7 @@
  * Plugin Name:       Form Handler WP
  * Plugin URI:        https://github.com/welbinator/form-handler-wp
  * Description:       Secure AJAX form handling with Brevo transactional email. Build your own forms; we handle the sending.
- * Version:           1.0.9
+ * Version:           1.1.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            James Welbes
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'FHW_VERSION', '1.0.9' );
+define( 'FHW_VERSION', '1.1.0' );
 define( 'FHW_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FHW_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'FHW_PLUGIN_FILE', __FILE__ );
@@ -35,6 +35,7 @@ require_once FHW_PLUGIN_DIR . 'includes/interface-fhw-mailer.php';
 require_once FHW_PLUGIN_DIR . 'includes/class-fhw-brevo-api.php';
 require_once FHW_PLUGIN_DIR . 'includes/class-fhw-logger.php';
 require_once FHW_PLUGIN_DIR . 'includes/class-fhw-form-registry.php';
+require_once FHW_PLUGIN_DIR . 'includes/class-fhw-submissions.php';
 require_once FHW_PLUGIN_DIR . 'includes/class-fhw-handler.php';
 require_once FHW_PLUGIN_DIR . 'includes/class-fhw-settings.php';
 
@@ -43,6 +44,7 @@ require_once FHW_PLUGIN_DIR . 'includes/class-fhw-settings.php';
  */
 function fhw_activate() {
 	FHW_Logger::create_table();
+	FHW_Submissions::create_table();
 	fhw_maybe_migrate_api_key();
 	flush_rewrite_rules();
 }
@@ -125,6 +127,19 @@ function fhw_init() {
 }
 add_action( 'init', 'fhw_init' );
 add_action( 'admin_init', 'fhw_maybe_migrate_api_key' );
+add_action( 'admin_init', 'fhw_maybe_create_submissions_table' );
+
+/**
+ * Create submissions table if the DB version is behind the current plugin version.
+ *
+ * Handles sites that were already active before this version was released.
+ */
+function fhw_maybe_create_submissions_table() {
+	$db_version = get_option( 'fhw_db_version', '' );
+	if ( version_compare( $db_version, FHW_VERSION, '<' ) ) {
+		FHW_Submissions::create_table();
+	}
+}
 
 /**
  * Generic AJAX handler — dispatches to FHW_Handler.

@@ -147,6 +147,16 @@ class FHW_Handler {
 		$brevo  = new FHW_Brevo_API();
 		$result = $brevo->send( $payload );
 
+		// Record submission before sending JSON response so it's always saved.
+		$email_status = is_wp_error( $result ) ? 'failed' : 'sent';
+		$submissions  = new FHW_Submissions();
+		$submissions->save(
+			$action,
+			isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '',
+			$post_fields,
+			$email_status
+		);
+
 		if ( is_wp_error( $result ) ) {
 			$this->logger->log(
 				implode( ', ', wp_list_pluck( $recipients, 'email' ) ),

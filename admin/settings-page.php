@@ -43,6 +43,12 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 	<?php if ( isset( $_GET['cleared'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification ?>
 		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Email log cleared.', 'form-handler-wp' ); ?></p></div>
 	<?php endif; ?>
+	<?php if ( isset( $_GET['submissions_deleted'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification ?>
+		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Submission deleted.', 'form-handler-wp' ); ?></p></div>
+	<?php endif; ?>
+	<?php if ( isset( $_GET['submissions_cleared'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification ?>
+		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'All submissions cleared.', 'form-handler-wp' ); ?></p></div>
+	<?php endif; ?>
 	<?php if ( isset( $_GET['error'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification ?>
 		<div class="notice notice-error is-dismissible"><p><?php echo esc_html( urldecode( sanitize_text_field( $_GET['error'] ) ) ); ?></p></div> <?php // phpcs:ignore WordPress.Security.NonceVerification ?>
 	<?php endif; ?>
@@ -56,6 +62,10 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 		<a href="<?php echo esc_url( admin_url( 'admin.php?page=form-handler-wp&tab=forms' ) ); ?>"
 			class="<?php echo 'forms' === $current_tab ? 'fhw-tab-active' : ''; ?>">
 			<?php esc_html_e( 'Registered Forms', 'form-handler-wp' ); ?>
+		</a>
+		<a href="<?php echo esc_url( admin_url( 'admin.php?page=form-handler-wp&tab=submissions' ) ); ?>"
+			class="<?php echo 'submissions' === $current_tab ? 'fhw-tab-active' : ''; ?>">
+			<?php esc_html_e( 'Submissions', 'form-handler-wp' ); ?>
 		</a>
 		<a href="<?php echo esc_url( admin_url( 'admin.php?page=form-handler-wp&tab=log' ) ); ?>"
 			class="<?php echo 'log' === $current_tab ? 'fhw-tab-active' : ''; ?>">
@@ -329,6 +339,311 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 			<?php submit_button( __( 'Add Form Handler', 'form-handler-wp' ) ); ?>
 		</form>
 	</div>
+
+<?php elseif ( 'submissions' === $current_tab ) : ?>
+
+	<?php
+	// Submissions tab data.
+	$submissions_obj = new FHW_Submissions();
+	$sub_per_page    = 25;
+	$sub_paged       = isset( $_GET['paged'] ) ? absint( $_GET['paged'] ) : 1; // phpcs:ignore WordPress.Security.NonceVerification
+	$sub_paged       = max( 1, $sub_paged );
+	$sub_filter      = isset( $_GET['action_name_filter'] ) ? sanitize_key( wp_unslash( $_GET['action_name_filter'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+	$sub_offset      = ( $sub_paged - 1 ) * $sub_per_page;
+	$sub_total       = $submissions_obj->get_count( $sub_filter );
+	$sub_total_pages = $sub_total > 0 ? (int) ceil( $sub_total / $sub_per_page ) : 1;
+	$sub_entries     = $submissions_obj->get_entries( $sub_per_page, $sub_offset, $sub_filter );
+	$sub_from        = $sub_total > 0 ? $sub_offset + 1 : 0;
+	$sub_to          = min( $sub_offset + $sub_per_page, $sub_total );
+	?>
+
+	<div class="fhw-card">
+		<h2><?php esc_html_e( 'Form Submissions', 'form-handler-wp' ); ?></h2>
+
+		<?php if ( isset( $_GET['deleted'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification ?>
+			<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Submission deleted.', 'form-handler-wp' ); ?></p></div>
+		<?php endif; ?>
+
+		<?php // Filter by form action. ?>
+		<form method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>" style="margin-bottom:16px;">
+			<input type="hidden" name="page" value="form-handler-wp" />
+			<input type="hidden" name="tab" value="submissions" />
+			<label for="fhw-sub-filter"><?php esc_html_e( 'Filter by form:', 'form-handler-wp' ); ?></label>
+			<select id="fhw-sub-filter" name="action_name_filter" onchange="this.form.submit()">
+				<option value=""><?php esc_html_e( '— All Forms —', 'form-handler-wp' ); ?></option>
+				<?php foreach ( $forms as $form_item ) : ?>
+					<option value="<?php echo esc_attr( $form_item['action_name'] ); ?>"
+						<?php selected( $sub_filter, $form_item['action_name'] ); ?>>
+						<?php echo esc_html( $form_item['action_name'] ); ?>
+					</option>
+				<?php endforeach; ?>
+			</select>
+		</form>
+
+		<?php if ( empty( $sub_entries ) ) : ?>
+			<p class="fhw-empty-state"><?php esc_html_e( 'No submissions found.', 'form-handler-wp' ); ?></p>
+		<?php else : ?>
+
+			<p style="margin-bottom:8px;">
+				<?php
+				echo esc_html(
+					sprintf(
+						/* translators: 1: first entry number, 2: last entry number, 3: total count */
+						__( 'Showing %1$d-%2$d of %3$d', 'form-handler-wp' ),
+						$sub_from,
+						$sub_to,
+						$sub_total
+					)
+				);
+				?>
+			</p>
+
+			<table class="fhw-log-table fhw-submissions-table">
+				<thead>
+					<tr>
+						<th><?php esc_html_e( 'Date/Time', 'form-handler-wp' ); ?></th>
+						<th><?php esc_html_e( 'Form', 'form-handler-wp' ); ?></th>
+						<th><?php esc_html_e( 'Fields', 'form-handler-wp' ); ?></th>
+						<th><?php esc_html_e( 'Email Status', 'form-handler-wp' ); ?></th>
+						<th><?php esc_html_e( 'Actions', 'form-handler-wp' ); ?></th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php foreach ( $sub_entries as $sub_entry ) : ?>
+						<?php
+						$entry_id       = absint( $sub_entry['id'] );
+						$decoded_fields = json_decode( $sub_entry['fields'], true );
+						if ( ! is_array( $decoded_fields ) ) {
+							$decoded_fields = array();
+						}
+
+						// Build summary: first 2 values, truncated to 50 chars.
+						$summary_parts = array();
+						$summary_count = 0;
+						foreach ( $decoded_fields as $f_key => $f_val ) {
+							if ( $summary_count >= 2 ) {
+								break;
+							}
+							$display_val = (string) $f_val;
+							if ( strlen( $display_val ) > 50 ) {
+								$display_val = substr( $display_val, 0, 50 ) . '...';
+							}
+							$summary_parts[] = esc_html( $f_key ) . ': ' . esc_html( $display_val );
+							++$summary_count;
+						}
+						$summary = implode( ' | ', $summary_parts );
+
+						// Build data attributes for the modal.
+						$modal_fields = array();
+						foreach ( $decoded_fields as $f_key => $f_val ) {
+							$modal_fields[] = array(
+								'key' => (string) $f_key,
+								'val' => (string) $f_val,
+							);
+						}
+						?>
+						<tr class="fhw-sub-row"
+							data-id="<?php echo esc_attr( (string) $entry_id ); ?>"
+							data-date="<?php echo esc_attr( $sub_entry['submitted_at'] ); ?>"
+							data-form="<?php echo esc_attr( $sub_entry['action_name'] ); ?>"
+							data-status="<?php echo esc_attr( $sub_entry['email_status'] ); ?>"
+							data-fields="<?php echo esc_attr( wp_json_encode( $modal_fields ) ); ?>"
+							style="cursor:pointer;">
+							<td><?php echo esc_html( $sub_entry['submitted_at'] ); ?></td>
+							<td><code><?php echo esc_html( $sub_entry['action_name'] ); ?></code></td>
+							<td><?php echo wp_kses( $summary, array() ); ?></td>
+							<td>
+								<span class="fhw-log-<?php echo esc_attr( $sub_entry['email_status'] ); ?>">
+									<?php echo esc_html( $sub_entry['email_status'] ); ?>
+								</span>
+							</td>
+							<td>
+								<form method="post"
+									action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"
+									class="fhw-delete-sub-form"
+									style="display:inline;">
+									<input type="hidden" name="action" value="fhw_delete_submission" />
+									<input type="hidden" name="submission_id" value="<?php echo esc_attr( (string) $entry_id ); ?>" />
+									<input type="hidden" name="paged" value="<?php echo esc_attr( (string) $sub_paged ); ?>" />
+									<input type="hidden" name="action_name_filter" value="<?php echo esc_attr( $sub_filter ); ?>" />
+									<?php wp_nonce_field( 'fhw_delete_submission_' . $entry_id, 'fhw_delete_submission_nonce' ); ?>
+									<button type="submit" class="button button-small button-link-delete fhw-delete-sub-btn">
+										<?php esc_html_e( 'Delete', 'form-handler-wp' ); ?>
+									</button>
+								</form>
+							</td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+
+			<?php // Modal overlay. ?>
+			<div id="fhw-sub-modal" role="dialog" aria-modal="true" aria-labelledby="fhw-modal-title" style="display:none;">
+				<div id="fhw-sub-modal-backdrop"></div>
+				<div id="fhw-sub-modal-box">
+					<div id="fhw-sub-modal-header">
+						<h2 id="fhw-modal-title"><?php esc_html_e( 'Submission Detail', 'form-handler-wp' ); ?></h2>
+						<button type="button" id="fhw-sub-modal-close" aria-label="<?php esc_attr_e( 'Close', 'form-handler-wp' ); ?>">&times;</button>
+					</div>
+					<div id="fhw-sub-modal-meta">
+						<span id="fhw-modal-form"></span>
+						<span id="fhw-modal-date"></span>
+						<span id="fhw-modal-status"></span>
+					</div>
+					<table id="fhw-sub-modal-fields">
+						<tbody></tbody>
+					</table>
+					<div id="fhw-sub-modal-footer">
+						<button type="button" id="fhw-modal-delete-btn" class="button button-link-delete">
+							<?php esc_html_e( 'Delete Submission', 'form-handler-wp' ); ?>
+						</button>
+						<button type="button" id="fhw-sub-modal-close-footer" class="button">
+							<?php esc_html_e( 'Close', 'form-handler-wp' ); ?>
+						</button>
+					</div>
+				</div>
+			</div>
+
+			<?php if ( $sub_total_pages > 1 ) : ?>
+				<div class="fhw-pagination" style="margin-top:12px;">
+					<?php if ( $sub_paged > 1 ) : ?>
+						<a href="
+						<?php
+						echo esc_url(
+							add_query_arg(
+								array(
+									'page'               => 'form-handler-wp',
+									'tab'                => 'submissions',
+									'paged'              => $sub_paged - 1,
+									'action_name_filter' => $sub_filter,
+								),
+								admin_url( 'admin.php' )
+							)
+						);
+						?>
+									" class="button">&laquo; <?php esc_html_e( 'Previous', 'form-handler-wp' ); ?></a>
+					<?php endif; ?>
+					<?php if ( $sub_paged < $sub_total_pages ) : ?>
+						<a href="
+						<?php
+						echo esc_url(
+							add_query_arg(
+								array(
+									'page'               => 'form-handler-wp',
+									'tab'                => 'submissions',
+									'paged'              => $sub_paged + 1,
+									'action_name_filter' => $sub_filter,
+								),
+								admin_url( 'admin.php' )
+							)
+						);
+						?>
+									" class="button"><?php esc_html_e( 'Next', 'form-handler-wp' ); ?> &raquo;</a>
+					<?php endif; ?>
+				</div>
+			<?php endif; ?>
+
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:20px;">
+				<input type="hidden" name="action" value="fhw_clear_submissions" />
+				<?php wp_nonce_field( 'fhw_clear_submissions', 'fhw_clear_submissions_nonce' ); ?>
+				<button type="submit" class="button button-link-delete"
+					onclick="return confirm('<?php echo esc_js( __( 'Are you sure you want to clear ALL submissions? This cannot be undone.', 'form-handler-wp' ) ); ?>')">
+					<?php esc_html_e( 'Clear All Submissions', 'form-handler-wp' ); ?>
+				</button>
+			</form>
+
+		<?php endif; ?>
+	</div>
+
+	<?php // Modal + submissions JS. ?>
+	<script>
+	( function() {
+		var modal    = document.getElementById( 'fhw-sub-modal' );
+		var backdrop = document.getElementById( 'fhw-sub-modal-backdrop' );
+		var closeBtn = document.getElementById( 'fhw-sub-modal-close' );
+		var closeFtr = document.getElementById( 'fhw-sub-modal-close-footer' );
+		var delBtn   = document.getElementById( 'fhw-modal-delete-btn' );
+		var tbody    = document.querySelector( '#fhw-sub-modal-fields tbody' );
+		var currentDeleteForm = null;
+
+		if ( ! modal ) { return; }
+
+		function openModal( row ) {
+			var fields = [];
+			try { fields = JSON.parse( row.dataset.fields || '[]' ); } catch(e) {}
+
+			document.getElementById( 'fhw-modal-form' ).textContent   = row.dataset.form   || '';
+			document.getElementById( 'fhw-modal-date' ).textContent   = row.dataset.date   || '';
+
+			var statusEl  = document.getElementById( 'fhw-modal-status' );
+			var status    = row.dataset.status || '';
+			statusEl.textContent  = status;
+			statusEl.className    = 'fhw-log-' + status;
+
+			// Populate fields table.
+			tbody.innerHTML = '';
+			if ( fields.length ) {
+				fields.forEach( function( f ) {
+					var tr = document.createElement( 'tr' );
+					var th = document.createElement( 'th' );
+					var td = document.createElement( 'td' );
+					th.textContent = f.key;
+					td.textContent = f.val;
+					tr.appendChild( th );
+					tr.appendChild( td );
+					tbody.appendChild( tr );
+				} );
+			} else {
+				var tr = document.createElement( 'tr' );
+				var td = document.createElement( 'td' );
+				td.setAttribute( 'colspan', '2' );
+				td.textContent = '<?php echo esc_js( __( '(no fields)', 'form-handler-wp' ) ); ?>';
+				tr.appendChild( td );
+				tbody.appendChild( tr );
+			}
+
+			// Wire delete button to the hidden form in this row.
+			currentDeleteForm = row.querySelector( '.fhw-delete-sub-form' );
+
+			modal.style.display = 'flex';
+			document.body.classList.add( 'fhw-modal-open' );
+			closeBtn.focus();
+		}
+
+		function closeModal() {
+			modal.style.display = 'none';
+			document.body.classList.remove( 'fhw-modal-open' );
+			currentDeleteForm = null;
+		}
+
+		// Open on row click (but not on the delete button itself).
+		document.addEventListener( 'click', function( e ) {
+			var row = e.target.closest( '.fhw-sub-row' );
+			if ( ! row ) { return; }
+			if ( e.target.closest( '.fhw-delete-sub-form' ) ) { return; }
+			openModal( row );
+		} );
+
+		// Close on backdrop / close buttons.
+		backdrop.addEventListener( 'click', closeModal );
+		closeBtn.addEventListener( 'click', closeModal );
+		closeFtr.addEventListener( 'click', closeModal );
+
+		// Escape key closes.
+		document.addEventListener( 'keydown', function( e ) {
+			if ( 'Escape' === e.key && modal.style.display !== 'none' ) {
+				closeModal();
+			}
+		} );
+
+		// Delete button inside modal submits the row's delete form.
+		delBtn.addEventListener( 'click', function() {
+			if ( ! currentDeleteForm ) { return; }
+			if ( ! confirm( '<?php echo esc_js( __( 'Delete this submission?', 'form-handler-wp' ) ); ?>' ) ) { return; }
+			currentDeleteForm.submit();
+		} );
+	}() );
+	</script>
 
 <?php elseif ( 'log' === $current_tab ) : ?>
 

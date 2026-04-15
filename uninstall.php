@@ -13,12 +13,18 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
+// Load plugin files needed for static methods.
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-fhw-submissions.php';
+
 // Drop the email log table.
 global $wpdb;
 
 $table_name = $wpdb->prefix . 'fhw_email_log';
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 $wpdb->query( "DROP TABLE IF EXISTS {$table_name}" );
+
+// Drop the submissions table.
+FHW_Submissions::drop_table();
 
 // Delete all plugin options.
 $options = array(
@@ -27,6 +33,7 @@ $options = array(
 	'fhw_sender_name',
 	'fhw_override_wp_mail',
 	'fhw_registered_forms',
+	'fhw_db_version',
 );
 
 foreach ( $options as $option ) {
