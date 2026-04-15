@@ -12,9 +12,33 @@
  *   data-fhw-error     — Custom generic error message
  *   data-fhw-reset     — Set to "false" to prevent form reset on success
  *
+ * Optional attributes on the submit button:
+ *   data-fhw-loading-text — Text shown on the button while submitting (default: "Sending…")
+ *
  * Optional status container (placed anywhere inside or near the form):
  *   <div data-fhw-status></div>
  *   If absent, one is created and appended inside the form automatically.
+ *
+ * Custom DOM events fired on the <form> element:
+ *   fhw:submit   — fired when the form submit is intercepted (before AJAX)
+ *                  event.detail = { action }
+ *   fhw:success  — fired after a successful submission
+ *                  event.detail = { action, message, response }
+ *   fhw:error    — fired after a failed submission (server error or network failure)
+ *                  event.detail = { action, message, response }
+ *
+ * Example — run your own code after a successful submission:
+ *   document.querySelector('[data-fhw-form="contact"]').addEventListener(
+ *     'fhw:success', function( e ) {
+ *       console.log( 'Form submitted!', e.detail.message );
+ *       // e.g. track a conversion, redirect, show a modal, etc.
+ *     }
+ *   );
+ *
+ * Example — listen on the document for any form:
+ *   document.addEventListener( 'fhw:success', function( e ) {
+ *     console.log( e.target, e.detail );
+ *   } );
  *
  * @package Form_Handler_WP
  */
@@ -115,9 +139,10 @@
 	function handleSubmit( form, action, nonceInput, submitBtn, statusEl ) {
 		var originalBtnText = submitBtn ? submitBtn.textContent : '';
 
-		// Disable button while submitting.
+		// Disable button + hide old status, then fire fhw:submit.
 		setSubmitting( submitBtn, true );
 		hideStatus( statusEl );
+		dispatchFhwEvent( form, 'fhw:submit', { action: action } );
 
 		// Collect all form fields into URLSearchParams.
 		var data = new URLSearchParams();
@@ -158,6 +183,8 @@
 					|| ( response.data && response.data.message )
 					|| 'Thank you! Your message has been sent.';
 				showStatus( statusEl, 'success', msg );
+				focusStatus( statusEl );
+				dispatchFhwEvent( form, 'fhw:success', { action: action, message: msg, response: response } );
 
 				// Reset form unless opted out.
 				if ( 'false' !== form.getAttribute( 'data-fhw-reset' ) ) {
@@ -170,12 +197,15 @@
 					|| ( response.data && response.data.message )
 					|| 'Something went wrong. Please try again.';
 				showStatus( statusEl, 'error', errMsg );
+				focusStatus( statusEl );
+				dispatchFhwEvent( form, 'fhw:error', { action: action, message: errMsg, response: response } );
 			}
 		} )
 		.catch( function () {
-			showStatus( statusEl, 'error',
-				form.getAttribute( 'data-fhw-error' ) || 'A network error occurred. Please try again.'
-			);
+			var netMsg = form.getAttribute( 'data-fhw-error' ) || 'A network error occurred. Please try again.';
+			showStatus( statusEl, 'error', netMsg );
+			focusStatus( statusEl );
+			dispatchFhwEvent( form, 'fhw:error', { action: action, message: netMsg, response: null } );
 		} )
 		.finally( function () {
 			setSubmitting( submitBtn, false, originalBtnText );
@@ -200,6 +230,40 @@
 		} else {
 			btn.textContent = originalText || btn.getAttribute( 'data-fhw-original-text' ) || btn.textContent;
 		}
+	}
+
+	/**
+	 * Move keyboard focus to the status element so screen readers announce it immediately.
+	 *
+	 * @param {HTMLElement} el
+	 */
+	function focusStatus( el ) {
+		if ( ! el ) {
+			return;
+		}
+		if ( ! el.getAttribute( 'tabindex' ) ) {
+			el.setAttribute( 'tabindex', '-1' );
+		}
+		el.focus();
+	}
+
+	/**
+	 * Dispatch a custom bubbling event on the form element.
+	 *
+	 * @param {HTMLFormElement} form
+	 * @param {string}          eventName
+	 * @param {Object}          detail
+	 */
+	function dispatchFhwEvent( form, eventName, detail ) {
+		var evt;
+		if ( typeof CustomEvent === 'function' ) {
+			evt = new CustomEvent( eventName, { bubbles: true, cancelable: false, detail: detail } );
+		} else {
+			// IE11 fallback.
+			evt = document.createEvent( 'CustomEvent' );
+			evt.initCustomEvent( eventName, true, false, detail );
+		}
+		form.dispatchEvent( evt );
 	}
 
 	/**

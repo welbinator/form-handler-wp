@@ -7,13 +7,35 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased] — v1.2.1
+## [Unreleased] — v1.2.2
+
+### Added
+- **Custom DOM events** — `fhw:submit`, `fhw:success`, and `fhw:error` are now fired on the form element after each submission, allowing developers to hook in analytics, redirects, modals, or custom validation without touching the plugin
+- **Focus management** — keyboard focus is moved to the status element after submission so screen reader users land directly on the result
+- **`data-fhw-loading-text` attribute** on the submit button — customise the button text shown while the request is in flight (default: “Sending…”)
+- **Help tab — Custom Events & Extensibility section** with code examples for analytics tracking, redirects, modals, and custom validation
+- **Help tab — Accessibility section** documenting what the plugin handles automatically and what developers need to add for full WCAG 2.1 AA compliance
+- **Help tab — Custom Validation section** with pattern for intercepting submit before the plugin handles it
 
 ### Added
 - **Edit registered forms** — Each form in the Registered Forms table now has an Edit button that opens a pre-populated form with all existing config values (action name, recipient emails, subject, spam rules, autoreply settings, field schema, etc.)
 - Edit form shows a warning if you change the action name (it will break existing HTML forms using the old value)
 - Autoreply and spam rule sections expand automatically on the edit form if they were already enabled
 - Cancel button returns to the forms list without saving
+
+### Fixed
+- Field schema rows now correctly pre-populate when editing a registered form
+
+---
+
+## [1.2.1] — 2026-04-15
+
+### Added
+- **Edit registered forms** — Each form in the Registered Forms table now has an Edit button that opens a pre-populated form with all existing config values (action name, recipient emails, subject, spam rules, autoreply settings, field schema, etc.)
+- Edit form shows a warning if you change the action name (it will break existing HTML forms using the old value)
+- Autoreply and spam rule sections expand automatically on the edit form if they were already enabled
+- Cancel button returns to the forms list without saving
+- README.md and CHANGELOG.md added to the repository
 
 ### Fixed
 - Field schema rows now correctly pre-populate when editing a registered form
