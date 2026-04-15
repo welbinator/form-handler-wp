@@ -5,7 +5,10 @@
         "phpcsstandards/phpcsutils": "^1.2",
         "phpstan/phpstan": "^2.1",
         "szepeviktor/phpstan-wordpress": "^2.0",
-        "phpstan/extension-installer": "^1.4"
+        "phpstan/extension-installer": "^1.4",
+        "codeception/codeception": "^5.0",
+        "codeception/module-asserts": "^3.0",
+        "lucatume/wp-browser": "^4.0"
     },
     "config": {
         "allow-plugins": {
@@ -17,6 +20,8 @@
         "phpcs": "phpcs",
         "phpcbf": "phpcbf",
         "phpstan": "phpstan analyse --memory-limit=1G",
-        "check": "[\"@phpcs\", \"@phpstan\"]"
+        "test": "codecept run",
+        "test:unit": "codecept run Unit",
+        "check": ["@phpcs", "@phpstan", "@test:unit"]
     }
 }
