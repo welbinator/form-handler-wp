@@ -25,6 +25,8 @@ class FHW_Settings {
 		add_action( 'admin_post_fhw_add_form', array( $this, 'save_new_form' ) );
 		add_action( 'admin_post_fhw_delete_form', array( $this, 'delete_form' ) );
 		add_action( 'admin_post_fhw_clear_log', array( $this, 'clear_log' ) );
+		add_action( 'admin_post_fhw_delete_submission', array( $this, 'delete_submission' ) );
+		add_action( 'admin_post_fhw_clear_submissions', array( $this, 'clear_submissions' ) );
 		add_action( 'wp_ajax_fhw_send_test_email', array( $this, 'ajax_send_test_email' ) );
 	}
 
@@ -241,28 +243,64 @@ class FHW_Settings {
 	}
 
 	/**
-	 * AJAX: send a test email.
+	 * Handle Delete Submission POST.
 	 */
-	public function ajax_send_test_email() {
+	public function delete_submission() {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'form-handler-wp' ) ), 403 );
+			wp_die( esc_html__( 'Permission denied.', 'form-handler-wp' ) );
 		}
 
-		check_ajax_referer( 'fhw_test_email', 'nonce' );
+		$id = isset( $_POST['submission_id'] ) ? absint( $_POST['submission_id'] ) : 0;
+		check_admin_referer( 'fhw_delete_submission_' . $id, 'fhw_delete_submission_nonce' );
 
-		$to_email = isset( $_POST['to_email'] ) ? sanitize_email( wp_unslash( $_POST['to_email'] ) ) : '';
-
-		if ( ! is_email( $to_email ) ) {
-			wp_send_json_error( array( 'message' => __( 'Please enter a valid email address to send the test to.', 'form-handler-wp' ) ) );
+		if ( $id > 0 ) {
+			$submissions = new FHW_Submissions();
+			$submissions->delete_entry( $id );
 		}
 
-		$brevo  = new FHW_Brevo_API();
-		$result = $brevo->send_test( $to_email );
+		$redirect_args = array(
+			'page'    => 'form-handler-wp',
+			'tab'     => 'submissions',
+			'deleted' => '1',
+		);
 
-		if ( is_wp_error( $result ) ) {
-			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+		$paged = isset( $_POST['paged'] ) ? absint( $_POST['paged'] ) : 1;
+		if ( $paged > 1 ) {
+			$redirect_args['paged'] = $paged;
 		}
 
-		wp_send_json_success( array( 'message' => __( 'Test email sent successfully!', 'form-handler-wp' ) ) );
+		$filter = isset( $_POST['action_name_filter'] ) ? sanitize_key( wp_unslash( $_POST['action_name_filter'] ) ) : '';
+		if ( '' !== $filter ) {
+			$redirect_args['action_name_filter'] = $filter;
+		}
+
+		wp_safe_redirect( add_query_arg( $redirect_args, admin_url( 'admin.php' ) ) );
+		exit;
+	}
+
+	/**
+	 * Handle Clear Submissions POST.
+	 */
+	public function clear_submissions() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Permission denied.', 'form-handler-wp' ) );
+		}
+
+		check_admin_referer( 'fhw_clear_submissions', 'fhw_clear_submissions_nonce' );
+
+		$submissions = new FHW_Submissions();
+		$submissions->clear_all();
+
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'    => 'form-handler-wp',
+					'tab'     => 'submissions',
+					'cleared' => '1',
+				),
+				admin_url( 'admin.php' )
+			)
+		);
+		exit;
 	}
 }

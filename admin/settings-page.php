@@ -43,6 +43,12 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 	<?php if ( isset( $_GET['cleared'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification ?>
 		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Email log cleared.', 'form-handler-wp' ); ?></p></div>
 	<?php endif; ?>
+	<?php if ( isset( $_GET['submissions_deleted'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification ?>
+		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Submission deleted.', 'form-handler-wp' ); ?></p></div>
+	<?php endif; ?>
+	<?php if ( isset( $_GET['submissions_cleared'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification ?>
+		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'All submissions cleared.', 'form-handler-wp' ); ?></p></div>
+	<?php endif; ?>
 	<?php if ( isset( $_GET['error'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification ?>
 		<div class="notice notice-error is-dismissible"><p><?php echo esc_html( urldecode( sanitize_text_field( $_GET['error'] ) ) ); ?></p></div> <?php // phpcs:ignore WordPress.Security.NonceVerification ?>
 	<?php endif; ?>
@@ -56,6 +62,10 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 		<a href="<?php echo esc_url( admin_url( 'admin.php?page=form-handler-wp&tab=forms' ) ); ?>"
 			class="<?php echo 'forms' === $current_tab ? 'fhw-tab-active' : ''; ?>">
 			<?php esc_html_e( 'Registered Forms', 'form-handler-wp' ); ?>
+		</a>
+		<a href="<?php echo esc_url( admin_url( 'admin.php?page=form-handler-wp&tab=submissions' ) ); ?>"
+			class="<?php echo 'submissions' === $current_tab ? 'fhw-tab-active' : ''; ?>">
+			<?php esc_html_e( 'Submissions', 'form-handler-wp' ); ?>
 		</a>
 		<a href="<?php echo esc_url( admin_url( 'admin.php?page=form-handler-wp&tab=log' ) ); ?>"
 			class="<?php echo 'log' === $current_tab ? 'fhw-tab-active' : ''; ?>">
@@ -329,6 +339,226 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 			<?php submit_button( __( 'Add Form Handler', 'form-handler-wp' ) ); ?>
 		</form>
 	</div>
+
+<?php elseif ( 'submissions' === $current_tab ) : ?>
+
+	<?php
+	// Submissions tab data.
+	$submissions_obj = new FHW_Submissions();
+	$sub_per_page    = 25;
+	$sub_paged       = isset( $_GET['paged'] ) ? absint( $_GET['paged'] ) : 1; // phpcs:ignore WordPress.Security.NonceVerification
+	$sub_paged       = max( 1, $sub_paged );
+	$sub_filter      = isset( $_GET['action_name_filter'] ) ? sanitize_key( wp_unslash( $_GET['action_name_filter'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+	$sub_offset      = ( $sub_paged - 1 ) * $sub_per_page;
+	$sub_total       = $submissions_obj->get_count( $sub_filter );
+	$sub_total_pages = $sub_total > 0 ? (int) ceil( $sub_total / $sub_per_page ) : 1;
+	$sub_entries     = $submissions_obj->get_entries( $sub_per_page, $sub_offset, $sub_filter );
+	$sub_from        = $sub_total > 0 ? $sub_offset + 1 : 0;
+	$sub_to          = min( $sub_offset + $sub_per_page, $sub_total );
+	?>
+
+	<div class="fhw-card">
+		<h2><?php esc_html_e( 'Form Submissions', 'form-handler-wp' ); ?></h2>
+
+		<?php if ( isset( $_GET['deleted'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification ?>
+			<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Submission deleted.', 'form-handler-wp' ); ?></p></div>
+		<?php endif; ?>
+
+		<?php // Filter by form action. ?>
+		<form method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>" style="margin-bottom:16px;">
+			<input type="hidden" name="page" value="form-handler-wp" />
+			<input type="hidden" name="tab" value="submissions" />
+			<label for="fhw-sub-filter"><?php esc_html_e( 'Filter by form:', 'form-handler-wp' ); ?></label>
+			<select id="fhw-sub-filter" name="action_name_filter" onchange="this.form.submit()">
+				<option value=""><?php esc_html_e( '— All Forms —', 'form-handler-wp' ); ?></option>
+				<?php foreach ( $forms as $form_item ) : ?>
+					<option value="<?php echo esc_attr( $form_item['action_name'] ); ?>"
+						<?php selected( $sub_filter, $form_item['action_name'] ); ?>>
+						<?php echo esc_html( $form_item['action_name'] ); ?>
+					</option>
+				<?php endforeach; ?>
+			</select>
+		</form>
+
+		<?php if ( empty( $sub_entries ) ) : ?>
+			<p class="fhw-empty-state"><?php esc_html_e( 'No submissions found.', 'form-handler-wp' ); ?></p>
+		<?php else : ?>
+
+			<p style="margin-bottom:8px;">
+				<?php
+				echo esc_html(
+					sprintf(
+						/* translators: 1: first entry number, 2: last entry number, 3: total count */
+						__( 'Showing %1$d-%2$d of %3$d', 'form-handler-wp' ),
+						$sub_from,
+						$sub_to,
+						$sub_total
+					)
+				);
+				?>
+			</p>
+
+			<table class="fhw-log-table fhw-submissions-table">
+				<thead>
+					<tr>
+						<th><?php esc_html_e( 'Date/Time', 'form-handler-wp' ); ?></th>
+						<th><?php esc_html_e( 'Form', 'form-handler-wp' ); ?></th>
+						<th><?php esc_html_e( 'Fields', 'form-handler-wp' ); ?></th>
+						<th><?php esc_html_e( 'Email Status', 'form-handler-wp' ); ?></th>
+						<th><?php esc_html_e( 'Actions', 'form-handler-wp' ); ?></th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php foreach ( $sub_entries as $sub_entry ) : ?>
+						<?php
+						$entry_id       = absint( $sub_entry['id'] );
+						$decoded_fields = json_decode( $sub_entry['fields'], true );
+						if ( ! is_array( $decoded_fields ) ) {
+							$decoded_fields = array();
+						}
+
+						// Build summary: first 2 values, truncated to 50 chars.
+						$summary_parts = array();
+						$summary_count = 0;
+						foreach ( $decoded_fields as $f_key => $f_val ) {
+							if ( $summary_count >= 2 ) {
+								break;
+							}
+							$display_val = (string) $f_val;
+							if ( strlen( $display_val ) > 50 ) {
+								$display_val = substr( $display_val, 0, 50 ) . '...';
+							}
+							$summary_parts[] = esc_html( $f_key ) . ': ' . esc_html( $display_val );
+							++$summary_count;
+						}
+						$summary = implode( ' | ', $summary_parts );
+						?>
+						<tr>
+							<td><?php echo esc_html( $sub_entry['submitted_at'] ); ?></td>
+							<td><code><?php echo esc_html( $sub_entry['action_name'] ); ?></code></td>
+							<td>
+								<?php echo wp_kses( $summary, array() ); ?>
+								<button type="button"
+									class="button button-small fhw-sub-view-toggle"
+									data-target="fhw-sub-detail-<?php echo esc_attr( (string) $entry_id ); ?>"
+									aria-expanded="false"
+									style="margin-left:6px;">
+									<?php esc_html_e( 'View', 'form-handler-wp' ); ?>
+								</button>
+							</td>
+							<td>
+								<span class="fhw-log-<?php echo esc_attr( $sub_entry['email_status'] ); ?>">
+									<?php echo esc_html( $sub_entry['email_status'] ); ?>
+								</span>
+							</td>
+							<td>
+								<form method="post"
+									action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"
+									style="display:inline;">
+									<input type="hidden" name="action" value="fhw_delete_submission" />
+									<input type="hidden" name="submission_id" value="<?php echo esc_attr( (string) $entry_id ); ?>" />
+									<input type="hidden" name="paged" value="<?php echo esc_attr( (string) $sub_paged ); ?>" />
+									<input type="hidden" name="action_name_filter" value="<?php echo esc_attr( $sub_filter ); ?>" />
+									<?php wp_nonce_field( 'fhw_delete_submission_' . $entry_id, 'fhw_delete_submission_nonce' ); ?>
+									<button type="submit" class="button button-small button-link-delete"
+										onclick="return confirm('<?php echo esc_js( __( 'Delete this submission?', 'form-handler-wp' ) ); ?>')">
+										<?php esc_html_e( 'Delete', 'form-handler-wp' ); ?>
+									</button>
+								</form>
+							</td>
+						</tr>
+						<tr id="fhw-sub-detail-<?php echo esc_attr( (string) $entry_id ); ?>" style="display:none;">
+							<td colspan="5">
+								<table class="fhw-sub-fields-table" style="width:100%;border-collapse:collapse;">
+									<?php if ( empty( $decoded_fields ) ) : ?>
+										<tr><td><?php esc_html_e( '(no fields)', 'form-handler-wp' ); ?></td></tr>
+									<?php else : ?>
+										<?php foreach ( $decoded_fields as $field_key => $field_val ) : ?>
+											<tr>
+												<th style="text-align:left;padding:4px 8px;background:#f5f5f5;width:160px;"><?php echo esc_html( $field_key ); ?></th>
+												<td style="padding:4px 8px;"><?php echo esc_html( (string) $field_val ); ?></td>
+											</tr>
+										<?php endforeach; ?>
+									<?php endif; ?>
+								</table>
+							</td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+
+			<?php if ( $sub_total_pages > 1 ) : ?>
+				<div class="fhw-pagination" style="margin-top:12px;">
+					<?php if ( $sub_paged > 1 ) : ?>
+						<a href="
+						<?php
+						echo esc_url(
+							add_query_arg(
+								array(
+									'page'               => 'form-handler-wp',
+									'tab'                => 'submissions',
+									'paged'              => $sub_paged - 1,
+									'action_name_filter' => $sub_filter,
+								),
+								admin_url( 'admin.php' )
+							)
+						);
+						?>
+									" class="button">&laquo; <?php esc_html_e( 'Previous', 'form-handler-wp' ); ?></a>
+					<?php endif; ?>
+					<?php if ( $sub_paged < $sub_total_pages ) : ?>
+						<a href="
+						<?php
+						echo esc_url(
+							add_query_arg(
+								array(
+									'page'               => 'form-handler-wp',
+									'tab'                => 'submissions',
+									'paged'              => $sub_paged + 1,
+									'action_name_filter' => $sub_filter,
+								),
+								admin_url( 'admin.php' )
+							)
+						);
+						?>
+									" class="button"><?php esc_html_e( 'Next', 'form-handler-wp' ); ?> &raquo;</a>
+					<?php endif; ?>
+				</div>
+			<?php endif; ?>
+
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:20px;">
+				<input type="hidden" name="action" value="fhw_clear_submissions" />
+				<?php wp_nonce_field( 'fhw_clear_submissions', 'fhw_clear_submissions_nonce' ); ?>
+				<button type="submit" class="button button-link-delete"
+					onclick="return confirm('<?php echo esc_js( __( 'Are you sure you want to clear ALL submissions? This cannot be undone.', 'form-handler-wp' ) ); ?>')">
+					<?php esc_html_e( 'Clear All Submissions', 'form-handler-wp' ); ?>
+				</button>
+			</form>
+
+		<?php endif; ?>
+	</div>
+
+	<?php // Inline script for View toggle. ?>
+	<script>
+	( function() {
+		document.addEventListener( 'click', function( e ) {
+			if ( ! e.target.classList.contains( 'fhw-sub-view-toggle' ) ) {
+				return;
+			}
+			var btn    = e.target;
+			var target = document.getElementById( btn.dataset.target );
+			if ( ! target ) {
+				return;
+			}
+			var expanded = 'true' === btn.getAttribute( 'aria-expanded' );
+			btn.setAttribute( 'aria-expanded', expanded ? 'false' : 'true' );
+			target.style.display = expanded ? 'none' : '';
+			btn.textContent = expanded ?
+				'<?php echo esc_js( __( 'View', 'form-handler-wp' ) ); ?>' :
+				'<?php echo esc_js( __( 'Hide', 'form-handler-wp' ) ); ?>';
+		} );
+	}() );
+	</script>
 
 <?php elseif ( 'log' === $current_tab ) : ?>
 
