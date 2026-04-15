@@ -292,6 +292,11 @@
 	font-weight: 600;
 }
 
+.fhw-log-spam {
+	color: #996800;
+	font-weight: 600;
+}
+
 .fhw-log-error-msg {
 	color: #d63638;
 	font-size: 11px;
@@ -307,6 +312,11 @@
 
 /* Auto-reply sub-rows — hidden until checkbox is checked */
 .fhw-autoreply-row {
+	display: none;
+}
+
+/* Spam filter rules row — hidden until master toggle is checked */
+.fhw-spam-rules-row {
 	display: none;
 }
 

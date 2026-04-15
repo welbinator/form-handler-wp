@@ -39,3 +39,4 @@ if ( ! defined( 'LOGGED_IN_KEY' ) ) {
 
 // Load the class under test.
 require_once dirname( __DIR__ ) . '/includes/class-fhw-crypto.php';
+require_once dirname( __DIR__ ) . '/includes/class-fhw-spam-checker.php';

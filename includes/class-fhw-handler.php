@@ -33,11 +33,19 @@ class FHW_Handler {
 	private $logger;
 
 	/**
+	 * Spam checker instance.
+	 *
+	 * @var FHW_Spam_Checker
+	 */
+	private $spam_checker;
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
-		$this->registry = new FHW_Form_Registry();
-		$this->logger   = new FHW_Logger();
+		$this->registry     = new FHW_Form_Registry();
+		$this->logger       = new FHW_Logger();
+		$this->spam_checker = new FHW_Spam_Checker();
 	}
 
 	/**
@@ -76,6 +84,40 @@ class FHW_Handler {
 			}
 		}
 
+		// Sanitize submitted fields according to schema (needed for spam check and email).
+		$post_fields = $this->get_all_post_fields( $form['field_schema'] ?? array() );
+
+		// Spam check (if enabled for this form).
+		if ( '1' === ( $form['spam_filter'] ?? '1' ) ) {
+			$enabled_rules = array(
+				'no_user_agent'    => $form['spam_rule_no_user_agent'] ?? '1',
+				'all_digits'       => $form['spam_rule_all_digits'] ?? '1',
+				'no_spaces'        => $form['spam_rule_no_spaces'] ?? '1',
+				'ai_greeting'      => $form['spam_rule_ai_greeting'] ?? '1',
+				'buy_link'         => $form['spam_rule_buy_link'] ?? '1',
+				'spammy_email_url' => $form['spam_rule_spammy_email_url'] ?? '1',
+			);
+			$user_agent    = isset( $_SERVER['HTTP_USER_AGENT'] )
+				? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) )
+				: '';
+			$spam_reason   = $this->spam_checker->is_spam( $post_fields, $user_agent, $enabled_rules );
+			if ( false !== $spam_reason ) {
+				// Log the blocked submission.
+				$submissions = new FHW_Submissions();
+				$submissions->save(
+					$action,
+					isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '',
+					$post_fields,
+					'spam'
+				);
+				wp_send_json_error(
+					array(
+						'message' => __( 'Your submission could not be processed.', 'form-handler-wp' ),
+					)
+				);
+			}
+		}
+
 		// Rate limiting.
 		if ( ! empty( $form['rate_limit'] ) && $form['rate_limit'] > 0 ) {
 			$rate_error = $this->check_rate_limit( $action, (int) $form['rate_limit'] );
@@ -83,10 +125,6 @@ class FHW_Handler {
 				wp_send_json_error( array( 'message' => $rate_error->get_error_message() ), 429 );
 			}
 		}
-
-		// Sanitize submitted fields according to schema.
-		$fields      = $this->sanitize_fields( $form['field_schema'] ?? array() );
-		$post_fields = $this->get_all_post_fields( $form['field_schema'] ?? array() );
 
 		// Build subject from template.
 		$subject = $this->resolve_subject( $form['subject_tpl'], $post_fields );

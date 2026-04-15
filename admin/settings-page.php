@@ -334,6 +334,55 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 						<span class="description"><?php esc_html_e( 'Max submissions per IP per hour. Set to 0 to disable.', 'form-handler-wp' ); ?></span>
 					</td>
 				</tr>
+				<tr class="form-field">
+					<th scope="row">
+						<label for="fhw_spam_filter"><?php esc_html_e( 'Spam Filter', 'form-handler-wp' ); ?></label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" id="fhw_spam_filter" name="spam_filter" value="1" checked />
+							<?php esc_html_e( 'Enable spam filtering for this form', 'form-handler-wp' ); ?>
+						</label>
+						<span class="description"><?php esc_html_e( 'Blocks common spam patterns. Individual rules can be configured below.', 'form-handler-wp' ); ?></span>
+					</td>
+				</tr>
+				<tr class="form-field fhw-spam-rules-row">
+					<th scope="row"><?php esc_html_e( 'Spam Rules', 'form-handler-wp' ); ?></th>
+					<td>
+						<fieldset>
+							<label style="display:block;margin-bottom:6px;">
+								<input type="checkbox" name="spam_rule_no_user_agent" value="1" checked />
+								<?php esc_html_e( 'Block requests with no browser user-agent', 'form-handler-wp' ); ?>
+								<span style="display:block;color:#646970;font-size:12px;"><?php esc_html_e( 'Almost all bots omit this. Safe to keep on.', 'form-handler-wp' ); ?></span>
+							</label>
+							<label style="display:block;margin-bottom:6px;">
+								<input type="checkbox" name="spam_rule_all_digits" value="1" checked />
+								<?php esc_html_e( 'Block submissions where a field contains only digits (over 10 chars)', 'form-handler-wp' ); ?>
+								<span style="display:block;color:#646970;font-size:12px;"><?php esc_html_e( 'Turn off if you expect long numeric inputs (e.g. account numbers).', 'form-handler-wp' ); ?></span>
+							</label>
+							<label style="display:block;margin-bottom:6px;">
+								<input type="checkbox" name="spam_rule_no_spaces" value="1" checked />
+								<?php esc_html_e( 'Block single-word messages (no spaces, over 10 chars)', 'form-handler-wp' ); ?>
+								<span style="display:block;color:#646970;font-size:12px;"><?php esc_html_e( 'Turn off if you expect very short or single-word responses.', 'form-handler-wp' ); ?></span>
+							</label>
+							<label style="display:block;margin-bottom:6px;">
+								<input type="checkbox" name="spam_rule_ai_greeting" value="1" checked />
+								<?php esc_html_e( 'Block AI-generated greeting openers (&#8220;Hi! I just&#8230;&#8221;, &#8220;Hello there! I just&#8230;&#8221;)', 'form-handler-wp' ); ?>
+								<span style="display:block;color:#646970;font-size:12px;"><?php esc_html_e( 'Rarely triggers on real humans. Safe to keep on.', 'form-handler-wp' ); ?></span>
+							</label>
+							<label style="display:block;margin-bottom:6px;">
+								<input type="checkbox" name="spam_rule_buy_link" value="1" checked />
+								<?php esc_html_e( 'Block messages containing &#8220;buy&#8221; and a hyperlink', 'form-handler-wp' ); ?>
+								<span style="display:block;color:#646970;font-size:12px;"><?php esc_html_e( 'Turn off if your form legitimately accepts messages with product links.', 'form-handler-wp' ); ?></span>
+							</label>
+							<label style="display:block;margin-bottom:6px;">
+								<input type="checkbox" name="spam_rule_spammy_email_url" value="1" checked />
+								<?php esc_html_e( 'Block firstname_lastname@gmail/yahoo/hotmail.com emails combined with a URL in any field', 'form-handler-wp' ); ?>
+								<span style="display:block;color:#646970;font-size:12px;"><?php echo wp_kses( __( '<strong>Turn off if your form has a &#8220;website&#8221; or &#8220;URL&#8221; field</strong> &#8212; this combo can trigger on real users.', 'form-handler-wp' ), array( 'strong' => array() ) ); ?></span>
+							</label>
+						</fieldset>
+					</td>
+				</tr>
 			</table>
 
 			<?php submit_button( __( 'Add Form Handler', 'form-handler-wp' ) ); ?>
@@ -762,6 +811,40 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 		<p><?php esc_html_e( 'For better security, define your Brevo API key as a constant in wp-config.php instead of storing it in the database:', 'form-handler-wp' ); ?></p>
 		<pre style="background:#f6f7f7;padding:16px;border-radius:4px;overflow:auto;font-size:13px;">define( 'FHW_BREVO_API_KEY', 'your-brevo-v3-api-key' );</pre>
 		<p><?php esc_html_e( 'When this constant is present the API key field on the Brevo Settings tab is disabled and the constant value is used automatically.', 'form-handler-wp' ); ?></p>
+	</div>
+
+	<div class="fhw-card">
+		<h2><?php esc_html_e( 'Spam Filtering', 'form-handler-wp' ); ?></h2>
+		<p><?php esc_html_e( 'Spam filtering is enabled per form and is on by default. It runs a series of lightweight checks against each submission.', 'form-handler-wp' ); ?></p>
+		<ul style="list-style:disc;margin-left:20px;line-height:1.8;">
+			<li><?php esc_html_e( 'There are 6 individual rules, each of which can be toggled on or off when adding or editing a form handler.', 'form-handler-wp' ); ?></li>
+			<li><?php esc_html_e( 'Blocked submissions are still recorded in the Submissions tab with the status &#8220;spam&#8221; &#8212; check there if real users report their submissions are not going through.', 'form-handler-wp' ); ?></li>
+			<li><?php echo wp_kses( __( 'The <strong>spammy email + URL</strong> rule is the most likely to cause false positives. If your form has a &#8220;website&#8221; or &#8220;URL&#8221; field, consider turning it off.', 'form-handler-wp' ), array( 'strong' => array() ) ); ?></li>
+		</ul>
+	</div>
+
+	<div class="fhw-card">
+		<h2><?php esc_html_e( 'Honeypot Protection', 'form-handler-wp' ); ?></h2>
+		<p><?php esc_html_e( 'A honeypot is a hidden form field that real users never see or fill in &#8212; but bots do. If the field has a value when the form is submitted, the submission is silently discarded.', 'form-handler-wp' ); ?></p>
+		<p><?php esc_html_e( 'To set it up:', 'form-handler-wp' ); ?></p>
+		<ol style="list-style:decimal;margin-left:20px;line-height:1.8;">
+			<li><?php esc_html_e( 'Add a hidden field to your HTML form using a plausible-looking field name.', 'form-handler-wp' ); ?></li>
+			<li><?php esc_html_e( 'Hide it from real users with inline CSS (display:none) and accessibility attributes.', 'form-handler-wp' ); ?></li>
+			<li><?php esc_html_e( 'In the form config, set &#8220;Honeypot Field Name&#8221; to match the field name you chose.', 'form-handler-wp' ); ?></li>
+		</ol>
+		<p><?php esc_html_e( 'Example:', 'form-handler-wp' ); ?></p>
+		<pre style="background:#f6f7f7;padding:16px;border-radius:4px;overflow:auto;font-size:13px;">&lt;input type=&quot;text&quot; name=&quot;website&quot; style=&quot;display:none;&quot; tabindex=&quot;-1&quot; autocomplete=&quot;off&quot; /&gt;</pre>
+		<p>
+			<?php
+			echo wp_kses(
+				__( 'Then set <strong>Honeypot Field</strong> to <code>website</code> in the form config.', 'form-handler-wp' ),
+				array(
+					'strong' => array(),
+					'code'   => array(),
+				)
+			);
+			?>
+		</p>
 	</div>
 
 <?php endif; ?>

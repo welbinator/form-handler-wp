@@ -159,21 +159,28 @@ class FHW_Form_Registry {
 	 */
 	public function sanitize_form_data( array $data ) {
 		$sanitized = array(
-			'action_name'        => sanitize_key( $data['action_name'] ?? '' ),
-			'to_emails'          => sanitize_text_field( wp_unslash( $data['to_emails'] ?? '' ) ),
-			'subject_tpl'        => sanitize_text_field( wp_unslash( $data['subject_tpl'] ?? '' ) ),
-			'reply_to_field'     => sanitize_key( $data['reply_to_field'] ?? '' ),
-			'success_message'    => wp_kses_post( wp_unslash( $data['success_message'] ?? '' ) ),
-			'html_email'         => ! empty( $data['html_email'] ) ? '1' : '0',
-			'honeypot_field'     => sanitize_key( $data['honeypot_field'] ?? '' ),
-			'rate_limit'         => absint( $data['rate_limit'] ?? 0 ),
-			'status'             => 'active',
-			'field_schema'       => array(),
+			'action_name'                => sanitize_key( $data['action_name'] ?? '' ),
+			'to_emails'                  => sanitize_text_field( wp_unslash( $data['to_emails'] ?? '' ) ),
+			'subject_tpl'                => sanitize_text_field( wp_unslash( $data['subject_tpl'] ?? '' ) ),
+			'reply_to_field'             => sanitize_key( $data['reply_to_field'] ?? '' ),
+			'success_message'            => wp_kses_post( wp_unslash( $data['success_message'] ?? '' ) ),
+			'html_email'                 => ! empty( $data['html_email'] ) ? '1' : '0',
+			'honeypot_field'             => sanitize_key( $data['honeypot_field'] ?? '' ),
+			'rate_limit'                 => absint( $data['rate_limit'] ?? 0 ),
+			'spam_filter'                => ! empty( $data['spam_filter'] ) ? '1' : '0',
+			'spam_rule_no_user_agent'    => ! empty( $data['spam_rule_no_user_agent'] ) ? '1' : '0',
+			'spam_rule_all_digits'       => ! empty( $data['spam_rule_all_digits'] ) ? '1' : '0',
+			'spam_rule_no_spaces'        => ! empty( $data['spam_rule_no_spaces'] ) ? '1' : '0',
+			'spam_rule_ai_greeting'      => ! empty( $data['spam_rule_ai_greeting'] ) ? '1' : '0',
+			'spam_rule_buy_link'         => ! empty( $data['spam_rule_buy_link'] ) ? '1' : '0',
+			'spam_rule_spammy_email_url' => ! empty( $data['spam_rule_spammy_email_url'] ) ? '1' : '0',
+			'status'                     => 'active',
+			'field_schema'               => array(),
 			// Auto-reply fields.
-			'autoreply_enabled'  => ! empty( $data['autoreply_enabled'] ) ? '1' : '0',
-			'autoreply_to_field' => sanitize_key( $data['autoreply_to_field'] ?? '' ),
-			'autoreply_subject'  => sanitize_text_field( wp_unslash( $data['autoreply_subject'] ?? '' ) ),
-			'autoreply_message'  => wp_kses_post( wp_unslash( $data['autoreply_message'] ?? '' ) ),
+			'autoreply_enabled'          => ! empty( $data['autoreply_enabled'] ) ? '1' : '0',
+			'autoreply_to_field'         => sanitize_key( $data['autoreply_to_field'] ?? '' ),
+			'autoreply_subject'          => sanitize_text_field( wp_unslash( $data['autoreply_subject'] ?? '' ) ),
+			'autoreply_message'          => wp_kses_post( wp_unslash( $data['autoreply_message'] ?? '' ) ),
 		);
 
 		// Sanitize field schema (repeatable rows).
