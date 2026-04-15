@@ -230,8 +230,27 @@ class FHW_Handler {
 	}
 
 	/**
+	 * Maximum number of POST fields to include in an email.
+	 *
+	 * Caps the open-ended POST sweep to prevent bots from flooding the
+	 * email body with dozens of junk fields.
+	 *
+	 * @var int
+	 */
+	const MAX_EMAIL_FIELDS = 30;
+
+	/**
+	 * Maximum character length for a single field value in the email body.
+	 *
+	 * @var int
+	 */
+	const MAX_FIELD_VALUE_LENGTH = 5000;
+
+	/**
 	 * Get all non-schema POST fields (for dynamic forms with no strict schema).
 	 * Merges schema-sanitized fields with any extra POST data (sanitized as text).
+	 *
+	 * Enforces field count and value length caps to prevent email flooding.
 	 *
 	 * @param array $schema Form field schema.
 	 * @return array
@@ -243,6 +262,11 @@ class FHW_Handler {
 		// Also add any POST keys not in the schema (sanitized generically).
 		// phpcs:ignore WordPress.Security.NonceVerification -- already verified.
 		foreach ( $_POST as $key => $value ) {
+			// Enforce field count cap.
+			if ( count( $sanitized ) >= self::MAX_EMAIL_FIELDS ) {
+				break;
+			}
+
 			$key = sanitize_key( $key );
 			// Skip WordPress internals and nonces.
 			if ( in_array( $key, array( 'action', 'nonce' ), true ) || false !== strpos( $key, '_nonce' ) ) {
@@ -250,6 +274,13 @@ class FHW_Handler {
 			}
 			if ( ! in_array( $key, $schema_keys, true ) && ! isset( $sanitized[ $key ] ) ) {
 				$sanitized[ $key ] = sanitize_text_field( wp_unslash( $value ) );
+			}
+		}
+
+		// Enforce value length cap on all fields.
+		foreach ( $sanitized as $key => $value ) {
+			if ( is_string( $value ) && strlen( $value ) > self::MAX_FIELD_VALUE_LENGTH ) {
+				$sanitized[ $key ] = substr( $value, 0, self::MAX_FIELD_VALUE_LENGTH );
 			}
 		}
 
@@ -447,35 +478,45 @@ class FHW_Handler {
 	}
 
 	/**
-	 * Get the client IP address (with proxy support).
+	 * Get the client IP address.
 	 *
-	 * @return string Sanitized IP address.
+	 * Uses only REMOTE_ADDR by default, which cannot be spoofed by the client.
+	 * Proxy headers (X-Forwarded-For etc.) are intentionally ignored because
+	 * they are trivially spoofable and would allow bots to bypass rate limiting
+	 * by rotating fake header values.
+	 *
+	 * If your site is behind a trusted reverse proxy (e.g. Nginx, Cloudflare,
+	 * a load balancer) and you need real visitor IPs, define the constant:
+	 *   define( 'FHW_TRUSTED_PROXY', true );
+	 * in wp-config.php. When set, the rightmost IP in X-Forwarded-For is used
+	 * (the rightmost is appended by the proxy itself and cannot be faked).
+	 *
+	 * @return string Validated IP address, or '0.0.0.0' as fallback.
 	 */
 	private function get_client_ip() {
-		$ip = '';
+		// Always start with REMOTE_ADDR — the only unspoofable value.
+		$remote_addr = isset( $_SERVER['REMOTE_ADDR'] )
+			? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) )
+			: '';
 
-		$headers = array(
-			'HTTP_CLIENT_IP',
-			'HTTP_X_FORWARDED_FOR',
-			'HTTP_X_FORWARDED',
-			'HTTP_FORWARDED_FOR',
-			'HTTP_FORWARDED',
-			'REMOTE_ADDR',
-		);
-
-		foreach ( $headers as $header ) {
-			if ( ! empty( $_SERVER[ $header ] ) ) {
-				$raw = sanitize_text_field( wp_unslash( $_SERVER[ $header ] ) );
-				// X-Forwarded-For can be a comma-separated list; take the first.
-				$parts = explode( ',', $raw );
-				$ip    = trim( $parts[0] );
-				if ( filter_var( $ip, FILTER_VALIDATE_IP ) ) {
-					break;
-				}
-				$ip = '';
+		// Only trust forwarded headers when the site owner has explicitly
+		// declared they are behind a trusted proxy.
+		if ( defined( 'FHW_TRUSTED_PROXY' ) && FHW_TRUSTED_PROXY
+			&& ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
+			$forwarded = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
+			// X-Forwarded-For: client, proxy1, proxy2
+			// The rightmost IP is appended by the trusted proxy — use that.
+			$parts     = array_map( 'trim', explode( ',', $forwarded ) );
+			$rightmost = end( $parts );
+			if ( filter_var( $rightmost, FILTER_VALIDATE_IP ) ) {
+				return $rightmost;
 			}
 		}
 
-		return '' !== $ip ? $ip : '0.0.0.0';
+		if ( filter_var( $remote_addr, FILTER_VALIDATE_IP ) ) {
+			return $remote_addr;
+		}
+
+		return '0.0.0.0';
 	}
 }
