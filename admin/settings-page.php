@@ -289,18 +289,28 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 					<td>
 						<div class="fhw-field-schema-wrap">
 							<div id="fhw-field-rows" class="fhw-field-rows">
+								<?php
+								$schema_rows = ( $is_editing && ! empty( $editing_form['field_schema'] ) ) ? $editing_form['field_schema'] : array(
+									array(
+										'field_name' => '',
+										'field_type' => 'text',
+									),
+								);
+								$field_types = array( 'text', 'email', 'textarea', 'url', 'number', 'checkbox' );
+								foreach ( $schema_rows as $row_idx => $schema_row ) :
+									$row_name = sanitize_key( $schema_row['field_name'] ?? '' );
+									$row_type = sanitize_key( $schema_row['field_type'] ?? 'text' );
+									?>
 								<div class="fhw-field-row">
-									<input type="text" name="field_schema[0][field_name]" placeholder="field_name" pattern="[a-z0-9_]+" />
-									<select name="field_schema[0][field_type]">
-										<option value="text">text</option>
-										<option value="email">email</option>
-										<option value="textarea">textarea</option>
-										<option value="url">url</option>
-										<option value="number">number</option>
-										<option value="checkbox">checkbox</option>
+									<input type="text" name="field_schema[<?php echo esc_attr( (string) $row_idx ); ?>][field_name]" placeholder="field_name" pattern="[a-z0-9_]+" value="<?php echo esc_attr( $row_name ); ?>" />
+									<select name="field_schema[<?php echo esc_attr( (string) $row_idx ); ?>][field_type]">
+										<?php foreach ( $field_types as $ft ) : ?>
+											<option value="<?php echo esc_attr( $ft ); ?>"<?php selected( $row_type, $ft ); ?>><?php echo esc_html( $ft ); ?></option>
+										<?php endforeach; ?>
 									</select>
 									<button type="button" class="fhw-remove-field" aria-label="<?php esc_attr_e( 'Remove field', 'form-handler-wp' ); ?>">&times;</button>
 								</div>
+								<?php endforeach; ?>
 							</div>
 							<button type="button" id="fhw-add-field-btn" class="button button-secondary">
 								+ <?php esc_html_e( 'Add Field', 'form-handler-wp' ); ?>
