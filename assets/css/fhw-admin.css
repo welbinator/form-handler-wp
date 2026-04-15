@@ -315,6 +315,11 @@
 	display: none;
 }
 
+/* Spam filter rules row — hidden until master toggle is checked */
+.fhw-spam-rules-row {
+	display: none;
+}
+
 /* -----------------------------------------------------------------------
    Submissions modal
 ----------------------------------------------------------------------- */

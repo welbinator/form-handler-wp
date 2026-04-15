@@ -30,32 +30,37 @@ class FHW_Spam_Checker {
 	 * Runs each heuristic in order and returns the reason string for the
 	 * first check that fires. Returns false when all checks pass (clean).
 	 *
-	 * @param array  $fields     Sanitized submitted field values (key => value).
-	 * @param string $user_agent Raw HTTP_USER_AGENT value (may be empty).
+	 * @param array  $fields        Sanitized submitted field values (key => value).
+	 * @param string $user_agent    HTTP_USER_AGENT value.
+	 * @param array  $enabled_rules Which rules to run. Keys: 'no_user_agent', 'all_digits',
+	 *                              'no_spaces', 'ai_greeting', 'buy_link', 'spammy_email_url'.
+	 *                              Pass an empty array (default) to run all rules.
 	 * @return false|string False if clean; string reason code if spam.
 	 */
-	public function is_spam( array $fields, $user_agent ) {
-		if ( $this->has_no_user_agent( $user_agent ) ) {
+	public function is_spam( array $fields, $user_agent, array $enabled_rules = array() ) {
+		$run_all = empty( $enabled_rules );
+
+		if ( ( $run_all || ! empty( $enabled_rules['no_user_agent'] ) ) && $this->has_no_user_agent( $user_agent ) ) {
 			return 'no_user_agent';
 		}
 
-		if ( $this->has_all_digit_field( $fields ) ) {
+		if ( ( $run_all || ! empty( $enabled_rules['all_digits'] ) ) && $this->has_all_digit_field( $fields ) ) {
 			return 'all_digits';
 		}
 
-		if ( $this->has_no_spaces_in_message( $fields ) ) {
+		if ( ( $run_all || ! empty( $enabled_rules['no_spaces'] ) ) && $this->has_no_spaces_in_message( $fields ) ) {
 			return 'no_spaces';
 		}
 
-		if ( $this->has_ai_greeting( $fields ) ) {
+		if ( ( $run_all || ! empty( $enabled_rules['ai_greeting'] ) ) && $this->has_ai_greeting( $fields ) ) {
 			return 'ai_greeting';
 		}
 
-		if ( $this->has_buy_link( $fields ) ) {
+		if ( ( $run_all || ! empty( $enabled_rules['buy_link'] ) ) && $this->has_buy_link( $fields ) ) {
 			return 'buy_link';
 		}
 
-		if ( $this->has_spammy_email_url_combo( $fields ) ) {
+		if ( ( $run_all || ! empty( $enabled_rules['spammy_email_url'] ) ) && $this->has_spammy_email_url_combo( $fields ) ) {
 			return 'spammy_email_url';
 		}
 

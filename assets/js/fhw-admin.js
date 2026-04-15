@@ -179,6 +179,29 @@
 	}
 
 	// -----------------------------------------------------------------------
+	// Spam filter rules row toggle
+	// -----------------------------------------------------------------------
+	function initSpamFilterToggle() {
+		var $checkbox = $( '#fhw_spam_filter' );
+		var $rows     = $( '.fhw-spam-rules-row' );
+
+		if ( ! $checkbox.length ) {
+			return;
+		}
+
+		function toggle() {
+			if ( $checkbox.is( ':checked' ) ) {
+				$rows.show();
+			} else {
+				$rows.hide();
+			}
+		}
+
+		toggle();
+		$checkbox.on( 'change', toggle );
+	}
+
+	// -----------------------------------------------------------------------
 	// Boot
 	// -----------------------------------------------------------------------
 	$( function () {
@@ -188,6 +211,7 @@
 		initDeleteConfirm();
 		initClearLogConfirm();
 		initAutoreplyToggle();
+		initSpamFilterToggle();
 	} );
 
 } )( jQuery );

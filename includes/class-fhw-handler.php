@@ -89,10 +89,18 @@ class FHW_Handler {
 
 		// Spam check (if enabled for this form).
 		if ( '1' === ( $form['spam_filter'] ?? '1' ) ) {
-			$user_agent  = isset( $_SERVER['HTTP_USER_AGENT'] )
+			$enabled_rules = array(
+				'no_user_agent'    => $form['spam_rule_no_user_agent'] ?? '1',
+				'all_digits'       => $form['spam_rule_all_digits'] ?? '1',
+				'no_spaces'        => $form['spam_rule_no_spaces'] ?? '1',
+				'ai_greeting'      => $form['spam_rule_ai_greeting'] ?? '1',
+				'buy_link'         => $form['spam_rule_buy_link'] ?? '1',
+				'spammy_email_url' => $form['spam_rule_spammy_email_url'] ?? '1',
+			);
+			$user_agent    = isset( $_SERVER['HTTP_USER_AGENT'] )
 				? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) )
 				: '';
-			$spam_reason = $this->spam_checker->is_spam( $post_fields, $user_agent );
+			$spam_reason   = $this->spam_checker->is_spam( $post_fields, $user_agent, $enabled_rules );
 			if ( false !== $spam_reason ) {
 				// Log the blocked submission.
 				$submissions = new FHW_Submissions();
