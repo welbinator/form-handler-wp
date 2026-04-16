@@ -111,27 +111,42 @@ class FHW_Spam_Checker {
 	 * @param array $fields Sanitized field values.
 	 * @return bool True if spam signal detected.
 	 */
+	/**
+	 * Check 3: A text field value has no spaces and exceeds 10 characters.
+	 *
+	 * Real messages almost always contain spaces. A long, space-free string
+	 * is a strong indicator of a bot injecting a URL or encoded payload.
+	 *
+	 * Email addresses and URLs are skipped — they naturally contain no spaces
+	 * and would cause false positives on standard contact forms.
+	 *
+	 * Each field is checked individually rather than only the longest, so a
+	 * bot cannot evade detection by also submitting one long normal field.
+	 *
+	 * @param array $fields Sanitized field values.
+	 * @return bool True if spam signal detected.
+	 */
 	private function has_no_spaces_in_message( array $fields ) {
-		$longest = '';
 		foreach ( $fields as $value ) {
 			$value = (string) $value;
-			// Skip email addresses and URLs — they naturally contain no spaces
-			// and would cause false positives on contact forms with an email field.
+			if ( strlen( $value ) <= 10 ) {
+				continue;
+			}
+			// Skip email addresses and URLs — they naturally contain no spaces.
 			if ( false !== strpos( $value, '@' ) ) {
 				continue;
 			}
 			if ( false !== strpos( $value, 'http' ) ) {
 				continue;
 			}
-			if ( strlen( $value ) > strlen( $longest ) ) {
-				$longest = $value;
+			// Skip numeric values (phone numbers, zip codes, etc.).
+			if ( ctype_digit( $value ) ) {
+				continue;
+			}
+			if ( false === strpos( $value, ' ' ) ) {
+				return true;
 			}
 		}
-
-		if ( strlen( $longest ) > 10 && false === strpos( $longest, ' ' ) ) {
-			return true;
-		}
-
 		return false;
 	}
 
