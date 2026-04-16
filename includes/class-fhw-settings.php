@@ -349,4 +349,48 @@ class FHW_Settings {
 		);
 		exit;
 	}
+
+	/**
+	 * AJAX handler: send a test email via Brevo.
+	 *
+	 * Expects POST fields: nonce, to_email.
+	 */
+	public function ajax_send_test_email() {
+		check_ajax_referer( 'fhw_test_email', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'form-handler-wp' ) ), 403 );
+		}
+
+		$to_email = isset( $_POST['to_email'] ) ? sanitize_email( wp_unslash( $_POST['to_email'] ) ) : '';
+		if ( ! is_email( $to_email ) ) {
+			wp_send_json_error( array( 'message' => __( 'Please enter a valid email address.', 'form-handler-wp' ) ) );
+		}
+
+		$sender_email = sanitize_email( get_option( 'fhw_sender_email', get_option( 'admin_email' ) ) );
+		$sender_name  = sanitize_text_field( get_option( 'fhw_sender_name', get_bloginfo( 'name' ) ) );
+
+		$payload = array(
+			'sender'      => array(
+				'name'  => $sender_name,
+				'email' => $sender_email,
+			),
+			'to'          => array( array( 'email' => $to_email ) ),
+			'subject'     => sprintf(
+				/* translators: %s: site name */
+				__( 'Test email from %s', 'form-handler-wp' ),
+				get_bloginfo( 'name' )
+			),
+			'textContent' => __( 'This is a test email sent from the Form Handler WP plugin. If you received this, your Brevo API key and sender settings are configured correctly.', 'form-handler-wp' ),
+		);
+
+		$brevo  = new FHW_Brevo_API();
+		$result = $brevo->send( $payload );
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+		}
+
+		wp_send_json_success( array( 'message' => __( 'Test email sent successfully!', 'form-handler-wp' ) ) );
+	}
 }
