@@ -108,7 +108,8 @@ class FHW_Handler {
 					$action,
 					isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '',
 					$post_fields,
-					'spam'
+					'spam',
+					$spam_reason
 				);
 				wp_send_json_error(
 					array(

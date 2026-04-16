@@ -7,7 +7,19 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased] — v1.2.2
+## [Unreleased] — v1.2.4
+
+### Added
+- **Spam reason tracking** — spam-blocked submissions now record which rule triggered the block (e.g. `no_user_agent`, `all_digits`, `buy_link`)
+- Spam rule key shown in the Submissions tab below the amber spam badge
+- Spam rule key also shown in the submission detail modal
+
+### Fixed
+- Spam submissions were being saved with status `sent` instead of `spam` due to missing enum value in `FHW_Submissions::save()`
+
+---
+
+## [1.2.3] — v1.2.3
 
 ### Added
 - **Custom DOM events** — `fhw:submit`, `fhw:success`, and `fhw:error` are now fired on the form element after each submission, allowing developers to hook in analytics, redirects, modals, or custom validation without touching the plugin

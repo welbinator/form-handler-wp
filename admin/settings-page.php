@@ -567,6 +567,7 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 							data-date="<?php echo esc_attr( $sub_entry['submitted_at'] ); ?>"
 							data-form="<?php echo esc_attr( $sub_entry['action_name'] ); ?>"
 							data-status="<?php echo esc_attr( $sub_entry['email_status'] ); ?>"
+							data-spam-reason="<?php echo esc_attr( $sub_entry['spam_reason'] ?? '' ); ?>"
 							data-fields="<?php echo esc_attr( wp_json_encode( $modal_fields ) ); ?>"
 							style="cursor:pointer;">
 							<td><?php echo esc_html( $sub_entry['submitted_at'] ); ?></td>
@@ -576,6 +577,9 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 								<span class="fhw-log-<?php echo esc_attr( $sub_entry['email_status'] ); ?>">
 									<?php echo esc_html( $sub_entry['email_status'] ); ?>
 								</span>
+								<?php if ( 'spam' === $sub_entry['email_status'] && ! empty( $sub_entry['spam_reason'] ) ) : ?>
+									<br><small class="fhw-spam-reason"><?php echo esc_html( $sub_entry['spam_reason'] ); ?></small>
+								<?php endif; ?>
 							</td>
 							<td>
 								<form method="post"
@@ -695,10 +699,17 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 			document.getElementById( 'fhw-modal-form' ).textContent   = row.dataset.form   || '';
 			document.getElementById( 'fhw-modal-date' ).textContent   = row.dataset.date   || '';
 
-			var statusEl  = document.getElementById( 'fhw-modal-status' );
-			var status    = row.dataset.status || '';
-			statusEl.textContent  = status;
-			statusEl.className    = 'fhw-log-' + status;
+			var statusEl   = document.getElementById( 'fhw-modal-status' );
+			var status     = row.dataset.status || '';
+			var spamReason = row.dataset.spamReason || '';
+			statusEl.textContent = status;
+			statusEl.className   = 'fhw-log-' + status;
+			if ( 'spam' === status && spamReason ) {
+				var reasonEl = document.createElement( 'small' );
+				reasonEl.className   = 'fhw-spam-reason';
+				reasonEl.textContent = ' (' + spamReason + ')';
+				statusEl.appendChild( reasonEl );
+			}
 
 			// Populate fields table.
 			tbody.innerHTML = '';

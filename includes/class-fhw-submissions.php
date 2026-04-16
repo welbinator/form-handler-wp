@@ -61,6 +61,7 @@ class FHW_Submissions {
 			ip_hash      VARCHAR(64)         NOT NULL DEFAULT '',
 			fields       LONGTEXT            NOT NULL DEFAULT '',
 			email_status VARCHAR(20)         NOT NULL DEFAULT 'sent',
+			spam_reason  VARCHAR(255)        NOT NULL DEFAULT '',
 			PRIMARY KEY  (id),
 			KEY action_name (action_name),
 			KEY submitted_at (submitted_at),
@@ -94,15 +95,17 @@ class FHW_Submissions {
 	 * @param string $ip           Raw client IP address.
 	 * @param array  $fields       Associative array of submitted field values.
 	 * @param string $email_status 'sent' or 'failed'.
+	 * @param string $spam_reason  Optional. Rule key that triggered spam detection (e.g. 'no_user_agent').
 	 *
 	 * @return int|false Insert ID on success, false on failure.
 	 */
-	public function save( $action_name, $ip, array $fields, $email_status ) {
+	public function save( $action_name, $ip, array $fields, $email_status, $spam_reason = '' ) {
 		global $wpdb;
 
 		$action_name  = sanitize_key( $action_name );
 		$ip_hash      = hash( 'sha256', sanitize_text_field( $ip ) );
-		$email_status = in_array( $email_status, array( 'sent', 'failed' ), true ) ? $email_status : 'sent';
+		$email_status = in_array( $email_status, array( 'sent', 'failed', 'spam' ), true ) ? $email_status : 'sent';
+		$spam_reason  = sanitize_key( $spam_reason );
 
 		// Enforce max field count and sanitize each value.
 		$clean_fields = array();
@@ -136,8 +139,9 @@ class FHW_Submissions {
 				'ip_hash'      => $ip_hash,
 				'fields'       => $fields_json,
 				'email_status' => $email_status,
+				'spam_reason'  => $spam_reason,
 			),
-			array( '%s', '%s', '%s', '%s', '%s' )
+			array( '%s', '%s', '%s', '%s', '%s', '%s' )
 		);
 
 		if ( false === $result ) {
