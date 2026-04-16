@@ -146,8 +146,7 @@ class FHWSpamCheckerTest extends Unit {
 	public function testNoSpacesInLongFieldFlagsSpam(): void {
 		$fields = array(
 			'name'    => 'Bot Name',
-			'message' => 'BuyChea pViagr aOnline',
-			'website' => 'https://spam-example-link.com/path/to/spam',
+			'message' => 'SuperLongSpamWordNoSpaces',
 		);
 
 		$result = $this->checker->is_spam( $fields, 'Mozilla/5.0', array() );
@@ -167,6 +166,20 @@ class FHWSpamCheckerTest extends Unit {
 		$result = $this->checker->is_spam( $fields, 'Mozilla/5.0', array() );
 
 		$this->assertFalse( $result, 'Short no-space value should not be flagged' );
+	}
+
+	/**
+	 * Email addresses contain no spaces but should NOT trigger no_spaces.
+	 */
+	public function testEmailFieldDoesNotTriggerNoSpaces(): void {
+		$fields = array(
+			'name'  => 'James Welbes',
+			'email' => 'james@apexbranding.design',
+		);
+
+		$result = $this->checker->is_spam( $fields, 'Mozilla/5.0', array() );
+
+		$this->assertFalse( $result, 'Email address field should not trigger no_spaces rule' );
 	}
 
 	// -----------------------------------------------------------------------

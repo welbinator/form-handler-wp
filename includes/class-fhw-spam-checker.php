@@ -115,6 +115,14 @@ class FHW_Spam_Checker {
 		$longest = '';
 		foreach ( $fields as $value ) {
 			$value = (string) $value;
+			// Skip email addresses and URLs — they naturally contain no spaces
+			// and would cause false positives on contact forms with an email field.
+			if ( false !== strpos( $value, '@' ) ) {
+				continue;
+			}
+			if ( false !== strpos( $value, 'http' ) ) {
+				continue;
+			}
 			if ( strlen( $value ) > strlen( $longest ) ) {
 				$longest = $value;
 			}
