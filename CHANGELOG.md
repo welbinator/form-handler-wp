@@ -7,6 +7,13 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.3.3] — 2026-04-17
+
+### Fixed
+- **GitHub updater cache bug** — when the cached release matched the installed version (no update available), the result was stored for 12 hours, preventing detection of a new release published within that window. The transient is now deleted immediately when no update is found, so the next WordPress update check always fetches fresh data from GitHub.
+
+---
+
 ## [1.3.2] — 2026-04-17
 
 ### Improved
