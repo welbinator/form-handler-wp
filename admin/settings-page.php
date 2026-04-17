@@ -205,16 +205,22 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 								);
 								?>
 											"
-									class="button button-small">
-									<?php esc_html_e( 'Edit', 'form-handler-wp' ); ?>
+									class="fhw-icon-btn fhw-icon-edit"
+									title="<?php esc_attr_e( 'Edit', 'form-handler-wp' ); ?>"
+									aria-label="<?php esc_attr_e( 'Edit', 'form-handler-wp' ); ?>">
+									<span class="dashicons dashicons-edit" aria-hidden="true"></span>
 								</a>
 								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"
 									class="fhw-delete-form" style="display:inline;">
 									<input type="hidden" name="action" value="fhw_delete_form" />
 									<input type="hidden" name="fhw_action_name" value="<?php echo esc_attr( $form['action_name'] ); ?>" />
 									<?php wp_nonce_field( 'fhw_delete_form', 'fhw_delete_nonce' ); ?>
-									<button type="submit" class="button button-small button-link-delete">
-										<?php esc_html_e( 'Delete', 'form-handler-wp' ); ?>
+									<button type="submit"
+										class="fhw-icon-btn fhw-icon-delete"
+										title="<?php esc_attr_e( 'Delete', 'form-handler-wp' ); ?>"
+										aria-label="<?php esc_attr_e( 'Delete', 'form-handler-wp' ); ?>"
+										onclick="return confirm('<?php echo esc_js( __( 'Are you sure you want to delete this form handler?', 'form-handler-wp' ) ); ?>')">
+										<span class="dashicons dashicons-trash" aria-hidden="true"></span>
 									</button>
 								</form>
 							</td>

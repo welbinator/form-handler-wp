@@ -217,6 +217,59 @@
 }
 
 /* -----------------------------------------------------------------------
+   Icon action buttons (edit pencil / delete trash)
+----------------------------------------------------------------------- */
+.fhw-icon-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 30px;
+	height: 30px;
+	padding: 0;
+	border-radius: 4px;
+	border: 1px solid transparent;
+	background: transparent;
+	cursor: pointer;
+	vertical-align: middle;
+	transition: background .12s, border-color .12s, color .12s;
+	text-decoration: none;
+}
+
+.fhw-icon-btn .dashicons {
+	width: 18px;
+	height: 18px;
+	font-size: 18px;
+	line-height: 1;
+}
+
+.fhw-icon-edit {
+	color: #2271b1;
+}
+
+.fhw-icon-edit:hover,
+.fhw-icon-edit:focus {
+	color: #135e96;
+	background: #f0f6fc;
+	border-color: #c3d9f0;
+}
+
+.fhw-icon-delete {
+	color: #d63638;
+}
+
+.fhw-icon-delete:hover,
+.fhw-icon-delete:focus {
+	color: #b32d2e;
+	background: #fcf0f1;
+	border-color: #f0c3c3;
+}
+
+/* Actions cell — keep buttons side by side, centered */
+.fhw-forms-table td:last-child {
+	white-space: nowrap;
+}
+
+/* -----------------------------------------------------------------------
    Field schema builder
 ----------------------------------------------------------------------- */
 .fhw-field-schema-wrap {
