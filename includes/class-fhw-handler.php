@@ -220,6 +220,9 @@ class FHW_Handler {
 			$this->send_autoreply( $form, $post_fields );
 		}
 
+		// Fire integrations (Mailchimp, ActiveCampaign, etc.).
+		FHW_Integration_Registry::run_all( $form, $post_fields );
+
 		// Record rate limit hit.
 		if ( ! empty( $form['rate_limit'] ) && $form['rate_limit'] > 0 ) {
 			$this->record_rate_limit( $action );

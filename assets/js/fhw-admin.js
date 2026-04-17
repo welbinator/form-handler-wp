@@ -215,3 +215,91 @@
 	} );
 
 } )( jQuery );
+
+// Immediately-invoked integration extension (appended after main closure)
+( function ( $ ) {
+	'use strict';
+
+	// -----------------------------------------------------------------------
+	// Integration toggle: show/hide per-integration fields
+	// -----------------------------------------------------------------------
+	function initIntegrationToggles() {
+		$( '.fhw-integration-toggle' ).each( function () {
+			var $cb     = $( this );
+			var intId   = $cb.data( 'integration' );
+			var $fields = $( '.fhw-integration-fields[data-integration="' + intId + '"]' );
+
+			function toggleFields() {
+				if ( $cb.is( ':checked' ) ) {
+					$fields.slideDown( 150 );
+					// Populate remote selects on first open.
+					$fields.find( '.fhw-integration-remote-select' ).each( function () {
+						if ( ! $( this ).data( 'loaded' ) ) {
+							loadRemoteOptions( $( this ) );
+						}
+					} );
+				} else {
+					$fields.slideUp( 150 );
+				}
+			}
+
+			toggleFields();
+			$cb.on( 'change', toggleFields );
+		} );
+
+		// If any integration block is already open on load, populate selects.
+		$( '.fhw-integration-fields:visible .fhw-integration-remote-select' ).each( function () {
+			if ( ! $( this ).data( 'loaded' ) ) {
+				loadRemoteOptions( $( this ) );
+			}
+		} );
+	}
+
+	// -----------------------------------------------------------------------
+	// Remote select: fetch options via AJAX
+	// -----------------------------------------------------------------------
+	function loadRemoteOptions( $select ) {
+		if ( $select.data( 'loaded' ) ) {
+			return;
+		}
+		$select.data( 'loaded', true );
+
+		var intId      = $select.data( 'integration' );
+		var remoteKey  = $select.data( 'remote-key' );
+		var savedValue = $select.val(); // pre-filled by PHP if editing
+
+		$select.empty().append( $( '<option>' ).val( '' ).text( '\u2014 Loading\u2026 \u2014' ) );
+
+		$.post(
+			fhwAdmin.ajaxUrl,
+			{
+				action        : 'fhw_get_integration_options',
+				nonce         : fhwAdmin.integrationOptsNonce,
+				integration_id: intId,
+				field_key     : remoteKey,
+			},
+			function ( response ) {
+				$select.empty().append( $( '<option>' ).val( '' ).text( '\u2014 Select \u2014' ) );
+
+				if ( response.success && response.data.options.length ) {
+					$.each( response.data.options, function ( i, opt ) {
+						var $opt = $( '<option>' ).val( opt.value ).text( opt.label );
+						if ( opt.value === savedValue ) {
+							$opt.prop( 'selected', true );
+						}
+						$select.append( $opt );
+					} );
+				} else {
+					$select.append( $( '<option>' ).val( '' ).text( '\u2014 No options found \u2014' ) );
+				}
+			}
+		).fail( function () {
+			$select.empty().append( $( '<option>' ).val( '' ).text( '\u2014 Failed to load \u2014' ) );
+		} );
+	}
+
+	$( function () {
+		initIntegrationToggles();
+	} );
+
+} )( jQuery );

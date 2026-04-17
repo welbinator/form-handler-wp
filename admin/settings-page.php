@@ -72,6 +72,10 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 			class="<?php echo 'submissions' === $current_tab ? 'fhw-tab-active' : ''; ?>">
 			<?php esc_html_e( 'Submissions', 'form-handler-wp' ); ?>
 		</a>
+		<a href="<?php echo esc_url( admin_url( 'admin.php?page=form-handler-wp&tab=integrations' ) ); ?>"
+			class="<?php echo 'integrations' === $current_tab ? 'fhw-tab-active' : ''; ?>">
+			<?php esc_html_e( 'Integrations', 'form-handler-wp' ); ?>
+		</a>
 		<a href="<?php echo esc_url( admin_url( 'admin.php?page=form-handler-wp&tab=log' ) ); ?>"
 			class="<?php echo 'log' === $current_tab ? 'fhw-tab-active' : ''; ?>">
 			<?php esc_html_e( 'Email Log', 'form-handler-wp' ); ?>
@@ -459,6 +463,95 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 			</div><!-- /.fhw-log-table-wrap -->
 
 			<?php
+			// Integrations section — only show if any integration is connected.
+			$connected_integrations = array_filter(
+				FHW_Integration_Registry::all(),
+				function ( $i ) {
+					return $i->is_connected(); }
+			);
+			if ( ! empty( $connected_integrations ) ) :
+				?>
+			<div class="fhw-card" style="margin-top:20px;">
+				<h2><?php esc_html_e( 'Integrations', 'form-handler-wp' ); ?></h2>
+				<?php
+				foreach ( $connected_integrations as $integration ) :
+					$int_id     = $integration->get_id();
+					$en_key     = 'integration_' . $int_id . '_enabled';
+					$is_enabled = $is_editing && '1' === ( $editing_form[ $en_key ] ?? '0' );
+					?>
+					<div class="fhw-integration-block" style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid #f0f0f1;">
+						<label style="font-weight:600;font-size:14px;">
+							<input type="checkbox"
+								name="<?php echo esc_attr( $en_key ); ?>"
+								value="1"
+								class="fhw-integration-toggle"
+								data-integration="<?php echo esc_attr( $int_id ); ?>"
+								<?php checked( $is_enabled ); ?> />
+							<?php echo esc_html( $integration->get_label() ); ?>
+						</label>
+
+						<div class="fhw-integration-fields" data-integration="<?php echo esc_attr( $int_id ); ?>" style="<?php echo $is_enabled ? '' : 'display:none;'; ?>margin-top:12px;padding-left:24px;">
+							<table class="form-table fhw-form-table" style="margin:0;">
+								<tbody>
+									<?php
+									foreach ( $integration->get_form_fields() as $field_def ) :
+										$fkey     = $field_def['key'];
+										$saved    = $is_editing ? ( $editing_form[ $fkey ] ?? '' ) : '';
+										$required = $field_def['required'] ?? true;
+										?>
+										<tr class="form-field">
+											<th scope="row">
+												<label for="<?php echo esc_attr( $fkey ); ?>">
+													<?php echo esc_html( $field_def['label'] ); ?>
+													<?php
+													if ( $required ) :
+														?>
+														<span style="color:#d63638;">*</span><?php endif; ?>
+												</label>
+											</th>
+											<td>
+												<?php if ( 'remote_select' === $field_def['type'] ) : ?>
+													<select id="<?php echo esc_attr( $fkey ); ?>"
+														name="<?php echo esc_attr( $fkey ); ?>"
+														class="fhw-integration-remote-select"
+														data-integration="<?php echo esc_attr( $int_id ); ?>"
+														data-remote-key="<?php echo esc_attr( $field_def['remote_key'] ); ?>">
+														<option value=""><?php esc_html_e( '— Loading… —', 'form-handler-wp' ); ?></option>
+														<?php if ( '' !== $saved ) : ?>
+															<option value="<?php echo esc_attr( $saved ); ?>" selected="selected"><?php echo esc_html( $saved ); ?></option>
+														<?php endif; ?>
+													</select>
+												<?php elseif ( 'field_map' === $field_def['type'] ) : ?>
+													<select id="<?php echo esc_attr( $fkey ); ?>" name="<?php echo esc_attr( $fkey ); ?>">
+														<option value=""><?php esc_html_e( '— None —', 'form-handler-wp' ); ?></option>
+														<?php
+														$schema_fields = $is_editing ? ( $editing_form['field_schema'] ?? array() ) : array();
+														foreach ( $schema_fields as $sf ) :
+															?>
+															<option value="<?php echo esc_attr( $sf['field_name'] ); ?>" <?php selected( $saved, $sf['field_name'] ); ?>>
+																<?php echo esc_html( $sf['field_name'] ); ?>
+															</option>
+														<?php endforeach; ?>
+													</select>
+												<?php else : ?>
+													<input type="text"
+														id="<?php echo esc_attr( $fkey ); ?>"
+														name="<?php echo esc_attr( $fkey ); ?>"
+														value="<?php echo esc_attr( $saved ); ?>" />
+												<?php endif; ?>
+												<span class="description"><?php echo esc_html( $field_def['description'] ); ?></span>
+											</td>
+										</tr>
+									<?php endforeach; ?>
+								</tbody>
+							</table>
+						</div>
+					</div>
+				<?php endforeach; ?>
+			</div>
+			<?php endif; ?>
+
+			<?php
 			if ( $is_editing ) {
 				submit_button( __( 'Update Form', 'form-handler-wp' ), 'primary', 'submit', false );
 				echo ' <a href="' . esc_url( admin_url( 'admin.php?page=form-handler-wp&tab=forms' ) ) . '" class="button" style="margin-left:8px;">' . esc_html__( 'Cancel', 'form-handler-wp' ) . '</a>';
@@ -841,6 +934,63 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 <?php endif; ?>
 
 <?php if ( 'help' === $current_tab ) : ?>
+
+<?php elseif ( 'integrations' === $current_tab ) : ?>
+
+	<?php if ( isset( $_GET['updated'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification ?>
+		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Integration settings saved.', 'form-handler-wp' ); ?></p></div>
+	<?php endif; ?>
+
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+		<input type="hidden" name="action" value="fhw_save_integration_settings" />
+		<?php wp_nonce_field( 'fhw_save_integration_settings', 'fhw_integration_settings_nonce' ); ?>
+
+		<?php foreach ( FHW_Integration_Registry::all() as $integration ) : ?>
+			<div class="fhw-card">
+				<h2>
+					<?php echo esc_html( $integration->get_label() ); ?>
+					<?php if ( $integration->is_connected() ) : ?>
+						<span class="fhw-status-badge fhw-status-active" style="margin-left:10px;vertical-align:middle;"><?php esc_html_e( 'Connected', 'form-handler-wp' ); ?></span>
+					<?php else : ?>
+						<span class="fhw-status-badge fhw-status-inactive" style="margin-left:10px;vertical-align:middle;"><?php esc_html_e( 'Not connected', 'form-handler-wp' ); ?></span>
+					<?php endif; ?>
+				</h2>
+				<table class="form-table fhw-form-table">
+					<tbody>
+						<?php foreach ( $integration->get_settings_fields() as $field ) : ?>
+							<tr class="form-field">
+								<th scope="row">
+									<label for="<?php echo esc_attr( $field['key'] ); ?>">
+										<?php echo esc_html( $field['label'] ); ?>
+									</label>
+								</th>
+								<td>
+									<?php if ( 'password' === $field['type'] ) : ?>
+										<input type="password"
+											id="<?php echo esc_attr( $field['key'] ); ?>"
+											name="<?php echo esc_attr( $field['key'] ); ?>"
+											value="<?php echo $integration->is_connected() ? '••••••••' : ''; ?>"
+											placeholder="<?php esc_attr_e( 'Enter API key', 'form-handler-wp' ); ?>"
+											autocomplete="new-password" />
+									<?php else : ?>
+										<input type="text"
+											id="<?php echo esc_attr( $field['key'] ); ?>"
+											name="<?php echo esc_attr( $field['key'] ); ?>"
+											value="<?php echo esc_attr( get_option( $field['key'], '' ) ); ?>" />
+									<?php endif; ?>
+									<span class="description"><?php echo esc_html( $field['description'] ); ?></span>
+								</td>
+							</tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
+			</div>
+		<?php endforeach; ?>
+
+		<?php submit_button( __( 'Save Integration Settings', 'form-handler-wp' ) ); ?>
+	</form>
+
+
 
 	<div class="fhw-card">
 		<h2><?php esc_html_e( 'Quick Start', 'form-handler-wp' ); ?></h2>

@@ -40,6 +40,12 @@ require_once FHW_PLUGIN_DIR . 'includes/class-fhw-spam-checker.php';
 require_once FHW_PLUGIN_DIR . 'includes/class-fhw-handler.php';
 require_once FHW_PLUGIN_DIR . 'includes/class-fhw-settings.php';
 
+// Integrations.
+require_once FHW_PLUGIN_DIR . 'includes/integrations/interface-fhw-integration.php';
+require_once FHW_PLUGIN_DIR . 'includes/integrations/class-fhw-integration-mailchimp.php';
+require_once FHW_PLUGIN_DIR . 'includes/integrations/class-fhw-integration-activecampaign.php';
+require_once FHW_PLUGIN_DIR . 'includes/integrations/class-fhw-integration-registry.php';
+
 /**
  * Activation hook: create DB table and migrate legacy base64 API key.
  */
