@@ -25,6 +25,15 @@ class FHW_Integration_Mailchimp implements FHW_Integration {
 	 */
 	const CACHE_TTL = 300;
 
+	/**
+	 * Maximum tag length enforced before sending to API.
+	 *
+	 * Mailchimp's documented limit is 100 characters.
+	 *
+	 * @var int
+	 */
+	const MAX_TAG_LENGTH = 100;
+
 	// -----------------------------------------------------------------------
 	// Interface: identity
 	// -----------------------------------------------------------------------
@@ -226,9 +235,13 @@ class FHW_Integration_Mailchimp implements FHW_Integration {
 			return array();
 		}
 
-		$dc       = $this->get_datacenter( $api_key );
+		$dc = $this->get_datacenter( $api_key );
+		if ( '' === $dc ) {
+			return array();
+		}
+
 		$response = wp_remote_get(
-			"https://{$dc}.api.mailchimp.com/3.0/lists?count=200&fields=lists.id,lists.name",
+			'https://' . $dc . '.api.mailchimp.com/3.0/lists?count=200&fields=lists.id,lists.name',
 			array(
 				'headers' => array(
 					'Authorization' => 'Basic ' . base64_encode( 'anystring:' . $api_key ), // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
@@ -249,6 +262,9 @@ class FHW_Integration_Mailchimp implements FHW_Integration {
 
 		$options = array();
 		foreach ( $body['lists'] as $list ) {
+			if ( empty( $list['id'] ) || empty( $list['name'] ) ) {
+				continue;
+			}
 			$options[] = array(
 				'value' => sanitize_text_field( $list['id'] ),
 				'label' => sanitize_text_field( $list['name'] ),
@@ -275,8 +291,9 @@ class FHW_Integration_Mailchimp implements FHW_Integration {
 			return;
 		}
 
+		// Validate list ID — must be alphanumeric (Mailchimp IDs are hex strings).
 		$list_id = sanitize_text_field( $form['mailchimp_list_id'] ?? '' );
-		if ( '' === $list_id ) {
+		if ( '' === $list_id || ! preg_match( '/^[a-f0-9]+$/i', $list_id ) ) {
 			return;
 		}
 
@@ -322,21 +339,30 @@ class FHW_Integration_Mailchimp implements FHW_Integration {
 
 		$addr1 = '' !== $addr1_field ? sanitize_text_field( $post_fields[ $addr1_field ] ?? '' ) : '';
 		if ( '' !== $addr1 ) {
+			// Country: enforce 2-char uppercase alpha code; fall back to 'US'.
+			$country_raw = '' !== $country_field ? sanitize_text_field( $post_fields[ $country_field ] ?? '' ) : '';
+			$country     = preg_match( '/^[a-zA-Z]{2}$/', $country_raw ) ? strtoupper( $country_raw ) : 'US';
+
 			$merge_fields['ADDRESS'] = array(
 				'addr1'   => $addr1,
 				'addr2'   => '' !== $addr2_field ? sanitize_text_field( $post_fields[ $addr2_field ] ?? '' ) : '',
 				'city'    => '' !== $city_field ? sanitize_text_field( $post_fields[ $city_field ] ?? '' ) : '',
 				'state'   => '' !== $state_field ? sanitize_text_field( $post_fields[ $state_field ] ?? '' ) : '',
 				'zip'     => '' !== $zip_field ? sanitize_text_field( $post_fields[ $zip_field ] ?? '' ) : '',
-				'country' => '' !== $country_field ? strtoupper( sanitize_text_field( $post_fields[ $country_field ] ?? 'US' ) ) : 'US',
+				'country' => $country,
 			);
 		}
 
-		// Tags.
+		// Tags — sanitize and enforce length cap.
 		$tags     = array();
 		$tags_raw = sanitize_text_field( $form['mailchimp_tags'] ?? '' );
 		if ( '' !== $tags_raw ) {
-			$tags = array_filter( array_map( 'trim', explode( ',', $tags_raw ) ) );
+			foreach ( explode( ',', $tags_raw ) as $tag ) {
+				$tag = trim( $tag );
+				if ( '' !== $tag ) {
+					$tags[] = substr( sanitize_text_field( $tag ), 0, self::MAX_TAG_LENGTH );
+				}
+			}
 		}
 
 		$this->subscribe( $api_key, $list_id, $email, $merge_fields, $tags );
@@ -352,15 +378,20 @@ class FHW_Integration_Mailchimp implements FHW_Integration {
 	 * Uses PUT (upsert) so re-subscribing an existing contact doesn't error.
 	 *
 	 * @param string   $api_key      Decrypted API key.
-	 * @param string   $list_id      Audience/list ID.
-	 * @param string   $email        Subscriber email.
+	 * @param string   $list_id      Audience/list ID (pre-validated as hex).
+	 * @param string   $email        Subscriber email (pre-validated).
 	 * @param array    $merge_fields MERGE_FIELDS payload.
 	 * @param string[] $tags         Tags to apply.
 	 */
 	private function subscribe( string $api_key, string $list_id, string $email, array $merge_fields, array $tags ): void {
-		$dc         = $this->get_datacenter( $api_key );
+		$dc = $this->get_datacenter( $api_key );
+		if ( '' === $dc ) {
+			return;
+		}
+
+		// MD5 of the lowercased email is the Mailchimp member identifier.
 		$email_hash = md5( strtolower( trim( $email ) ) );
-		$endpoint   = "https://{$dc}.api.mailchimp.com/3.0/lists/{$list_id}/members/{$email_hash}";
+		$endpoint   = 'https://' . $dc . '.api.mailchimp.com/3.0/lists/' . $list_id . '/members/' . $email_hash;
 
 		$body = array(
 			'email_address' => $email,
@@ -385,8 +416,7 @@ class FHW_Integration_Mailchimp implements FHW_Integration {
 		);
 
 		if ( is_wp_error( $response ) ) {
-			// Non-fatal — log and move on.
-			error_log( 'FHW Mailchimp: ' . $response->get_error_message() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			$this->log_error( 'Mailchimp subscribe failed: ' . $response->get_error_message() );
 			return;
 		}
 
@@ -402,16 +432,20 @@ class FHW_Integration_Mailchimp implements FHW_Integration {
 	 * @param string   $api_key    Decrypted API key.
 	 * @param string   $list_id    Audience/list ID.
 	 * @param string   $email_hash MD5 hash of the subscriber email.
-	 * @param string[] $tags       Tags to apply.
+	 * @param string[] $tags       Tags to apply (pre-sanitized, length-capped).
 	 */
 	private function apply_tags( string $api_key, string $list_id, string $email_hash, array $tags ): void {
-		$dc       = $this->get_datacenter( $api_key );
-		$endpoint = "https://{$dc}.api.mailchimp.com/3.0/lists/{$list_id}/members/{$email_hash}/tags";
+		$dc = $this->get_datacenter( $api_key );
+		if ( '' === $dc ) {
+			return;
+		}
+
+		$endpoint = 'https://' . $dc . '.api.mailchimp.com/3.0/lists/' . $list_id . '/members/' . $email_hash . '/tags';
 
 		$tag_payload = array_map(
-			function ( $tag ) {
+			static function ( $tag ) {
 				return array(
-					'name'   => sanitize_text_field( $tag ),
+					'name'   => $tag, // Already sanitized and length-capped in run().
 					'status' => 'active',
 				);
 			},
@@ -434,6 +468,8 @@ class FHW_Integration_Mailchimp implements FHW_Integration {
 	/**
 	 * Get the decrypted API key, or empty string.
 	 *
+	 * Result is returned from a single decrypt call to avoid double invocation.
+	 *
 	 * @return string
 	 */
 	private function get_api_key(): string {
@@ -444,19 +480,42 @@ class FHW_Integration_Mailchimp implements FHW_Integration {
 		if ( '' === $enc ) {
 			return '';
 		}
-		return ( FHW_Crypto::decrypt( $enc ) ? FHW_Crypto::decrypt( $enc ) : '' );
+		$decrypted = FHW_Crypto::decrypt( $enc );
+		return ( false !== $decrypted && '' !== $decrypted ) ? $decrypted : '';
 	}
 
 	/**
-	 * Extract the data centre prefix from a Mailchimp API key.
+	 * Extract and validate the data centre prefix from a Mailchimp API key.
 	 *
-	 * Keys end with '-us1', '-us6', etc.
+	 * Keys end with a dash-delimited DC suffix like 'us1', 'us6', 'eu1'.
+	 * The suffix is validated against a strict pattern before use in URLs
+	 * to prevent a crafted key from injecting arbitrary hostnames.
 	 *
 	 * @param string $api_key API key.
-	 * @return string Data centre slug, e.g. 'us1'.
+	 * @return string Validated DC slug (e.g. 'us1'), or empty string on failure.
 	 */
 	private function get_datacenter( string $api_key ): string {
 		$parts = explode( '-', $api_key );
-		return end( $parts ) ? end( $parts ) : 'us1';
+		$dc    = end( $parts );
+		// Validate: must be 2–3 lowercase letters followed by 1–3 digits (e.g. us1, eu1, us20).
+		if ( ! preg_match( '/^[a-z]{2,3}\d{1,3}$/', $dc ) ) {
+			$this->log_error( 'Mailchimp: invalid or missing data centre in API key.' );
+			return '';
+		}
+		return $dc;
+	}
+
+	/**
+	 * Log an error message when WP_DEBUG is enabled.
+	 *
+	 * Avoids polluting production logs with third-party API noise.
+	 *
+	 * @param string $message Error message.
+	 */
+	private function log_error( string $message ): void {
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( '[Form Handler WP] ' . $message );
+		}
 	}
 }

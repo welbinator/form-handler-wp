@@ -189,6 +189,11 @@ class FHW_Integration_ActiveCampaign implements FHW_Integration {
 			return array();
 		}
 
+		// Enforce HTTPS before making requests.
+		if ( 0 !== strpos( $api_url, 'https://' ) ) {
+			return array();
+		}
+
 		$response = wp_remote_get(
 			$api_url . '/api/3/lists?limit=100',
 			array(
@@ -238,6 +243,12 @@ class FHW_Integration_ActiveCampaign implements FHW_Integration {
 			return;
 		}
 
+		// Enforce HTTPS — never send credentials over plain HTTP.
+		if ( 0 !== strpos( $api_url, 'https://' ) ) {
+			$this->log_error( 'ActiveCampaign: API URL must use HTTPS.' );
+			return;
+		}
+
 		$list_id = sanitize_text_field( $form['activecampaign_list_id'] ?? '' );
 		if ( '' === $list_id ) {
 			return;
@@ -282,9 +293,12 @@ class FHW_Integration_ActiveCampaign implements FHW_Integration {
 		// Apply tags.
 		$tags_raw = sanitize_text_field( $form['activecampaign_tags'] ?? '' );
 		if ( '' !== $tags_raw ) {
-			$tags = array_filter( array_map( 'trim', explode( ',', $tags_raw ) ) );
-			foreach ( $tags as $tag ) {
-				$this->apply_tag( $api_key, $api_url, $contact_id, $tag );
+			foreach ( explode( ',', $tags_raw ) as $raw_tag ) {
+				$tag = trim( $raw_tag );
+				if ( '' !== $tag ) {
+					// Cap at 255 chars (AC's documented limit).
+					$this->apply_tag( $api_key, $api_url, $contact_id, substr( sanitize_text_field( $tag ), 0, 255 ) );
+				}
 			}
 		}
 	}
@@ -315,7 +329,7 @@ class FHW_Integration_ActiveCampaign implements FHW_Integration {
 		);
 
 		if ( is_wp_error( $response ) ) {
-			error_log( 'FHW ActiveCampaign: ' . $response->get_error_message() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			$this->log_error( 'ActiveCampaign upsert failed: ' . $response->get_error_message() );
 			return null;
 		}
 
@@ -428,7 +442,8 @@ class FHW_Integration_ActiveCampaign implements FHW_Integration {
 		if ( '' === $enc ) {
 			return '';
 		}
-		return ( FHW_Crypto::decrypt( $enc ) ? FHW_Crypto::decrypt( $enc ) : '' );
+		$decrypted = FHW_Crypto::decrypt( $enc );
+		return ( false !== $decrypted && '' !== $decrypted ) ? $decrypted : '';
 	}
 
 	/**
@@ -441,5 +456,17 @@ class FHW_Integration_ActiveCampaign implements FHW_Integration {
 			return rtrim( FHW_ACTIVECAMPAIGN_API_URL, '/' );
 		}
 		return rtrim( get_option( 'fhw_activecampaign_api_url', '' ), '/' );
+	}
+
+	/**
+	 * Log an error message when WP_DEBUG is enabled.
+	 *
+	 * @param string $message Error message.
+	 */
+	private function log_error( string $message ): void {
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( '[Form Handler WP] ' . $message );
+		}
 	}
 }
