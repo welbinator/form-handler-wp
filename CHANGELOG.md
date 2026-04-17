@@ -7,6 +7,17 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.3.1] — 2026-04-17
+
+### Added
+- **GitHub auto-updates** — Plugin now checks GitHub Releases for newer versions. WordPress will show the standard "Update available" notice and allow one-click updates directly from the Plugins page, just like a WordPress.org plugin.
+  - Checks GitHub API every 12 hours (cached)
+  - Prefers the explicitly-built zip asset (correct folder name) over GitHub's auto-generated source zip
+  - Skips pre-releases — only stable tags are offered as updates
+  - Cache is busted immediately after a successful update
+
+---
+
 ## [1.3.0] — 2026-04-17
 
 ### Added
