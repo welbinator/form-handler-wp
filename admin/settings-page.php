@@ -522,17 +522,11 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 														<?php endif; ?>
 													</select>
 												<?php elseif ( 'field_map' === $field_def['type'] ) : ?>
-													<select id="<?php echo esc_attr( $fkey ); ?>" name="<?php echo esc_attr( $fkey ); ?>">
-														<option value=""><?php esc_html_e( '— None —', 'form-handler-wp' ); ?></option>
-														<?php
-														$schema_fields = $is_editing ? ( $editing_form['field_schema'] ?? array() ) : array();
-														foreach ( $schema_fields as $sf ) :
-															?>
-															<option value="<?php echo esc_attr( $sf['field_name'] ); ?>" <?php selected( $saved, $sf['field_name'] ); ?>>
-																<?php echo esc_html( $sf['field_name'] ); ?>
-															</option>
-														<?php endforeach; ?>
-													</select>
+													<input type="text"
+														id="<?php echo esc_attr( $fkey ); ?>"
+														name="<?php echo esc_attr( $fkey ); ?>"
+														value="<?php echo esc_attr( $saved ); ?>"
+														placeholder="<?php esc_attr_e( 'e.g. email', 'form-handler-wp' ); ?>" />
 												<?php else : ?>
 													<input type="text"
 														id="<?php echo esc_attr( $fkey ); ?>"
