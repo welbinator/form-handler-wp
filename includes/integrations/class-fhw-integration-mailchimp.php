@@ -146,6 +146,55 @@ class FHW_Integration_Mailchimp implements FHW_Integration {
 				'description' => __( 'Comma-separated tags to apply to the subscriber.', 'form-handler-wp' ),
 			),
 			array(
+				'key'         => 'mailchimp_phone_field',
+				'label'       => __( 'Phone field', 'form-handler-wp' ),
+				'type'        => 'field_map',
+				'required'    => false,
+				'description' => __( 'Optional. Maps to Mailchimp PHONE merge field.', 'form-handler-wp' ),
+			),
+			array(
+				'key'         => 'mailchimp_addr1_field',
+				'label'       => __( 'Street address field', 'form-handler-wp' ),
+				'type'        => 'field_map',
+				'required'    => false,
+				'description' => __( 'Optional. Street address (addr1).', 'form-handler-wp' ),
+			),
+			array(
+				'key'         => 'mailchimp_addr2_field',
+				'label'       => __( 'Address line 2 field', 'form-handler-wp' ),
+				'type'        => 'field_map',
+				'required'    => false,
+				'description' => __( 'Optional.', 'form-handler-wp' ),
+			),
+			array(
+				'key'         => 'mailchimp_city_field',
+				'label'       => __( 'City field', 'form-handler-wp' ),
+				'type'        => 'field_map',
+				'required'    => false,
+				'description' => __( 'Optional.', 'form-handler-wp' ),
+			),
+			array(
+				'key'         => 'mailchimp_state_field',
+				'label'       => __( 'State / Province / Region field', 'form-handler-wp' ),
+				'type'        => 'field_map',
+				'required'    => false,
+				'description' => __( 'Optional.', 'form-handler-wp' ),
+			),
+			array(
+				'key'         => 'mailchimp_zip_field',
+				'label'       => __( 'Postal / Zip code field', 'form-handler-wp' ),
+				'type'        => 'field_map',
+				'required'    => false,
+				'description' => __( 'Optional.', 'form-handler-wp' ),
+			),
+			array(
+				'key'         => 'mailchimp_country_field',
+				'label'       => __( 'Country field', 'form-handler-wp' ),
+				'type'        => 'field_map',
+				'required'    => false,
+				'description' => __( 'Optional. Use 2-letter country code (e.g. US).', 'form-handler-wp' ),
+			),
+			array(
 				'key'         => 'mailchimp_optin_field',
 				'label'       => __( 'Opt-in field', 'form-handler-wp' ),
 				'type'        => 'field_map',
@@ -255,6 +304,32 @@ class FHW_Integration_Mailchimp implements FHW_Integration {
 		}
 		if ( '' !== $lname_field && ! empty( $post_fields[ $lname_field ] ) ) {
 			$merge_fields['LNAME'] = sanitize_text_field( $post_fields[ $lname_field ] );
+		}
+
+		// Phone.
+		$phone_field = sanitize_key( $form['mailchimp_phone_field'] ?? '' );
+		if ( '' !== $phone_field && ! empty( $post_fields[ $phone_field ] ) ) {
+			$merge_fields['PHONE'] = sanitize_text_field( $post_fields[ $phone_field ] );
+		}
+
+		// Address — only send if at least addr1 is present.
+		$addr1_field   = sanitize_key( $form['mailchimp_addr1_field'] ?? '' );
+		$addr2_field   = sanitize_key( $form['mailchimp_addr2_field'] ?? '' );
+		$city_field    = sanitize_key( $form['mailchimp_city_field'] ?? '' );
+		$state_field   = sanitize_key( $form['mailchimp_state_field'] ?? '' );
+		$zip_field     = sanitize_key( $form['mailchimp_zip_field'] ?? '' );
+		$country_field = sanitize_key( $form['mailchimp_country_field'] ?? '' );
+
+		$addr1 = '' !== $addr1_field ? sanitize_text_field( $post_fields[ $addr1_field ] ?? '' ) : '';
+		if ( '' !== $addr1 ) {
+			$merge_fields['ADDRESS'] = array(
+				'addr1'   => $addr1,
+				'addr2'   => '' !== $addr2_field ? sanitize_text_field( $post_fields[ $addr2_field ] ?? '' ) : '',
+				'city'    => '' !== $city_field ? sanitize_text_field( $post_fields[ $city_field ] ?? '' ) : '',
+				'state'   => '' !== $state_field ? sanitize_text_field( $post_fields[ $state_field ] ?? '' ) : '',
+				'zip'     => '' !== $zip_field ? sanitize_text_field( $post_fields[ $zip_field ] ?? '' ) : '',
+				'country' => '' !== $country_field ? strtoupper( sanitize_text_field( $post_fields[ $country_field ] ?? 'US' ) ) : 'US',
+			);
 		}
 
 		// Tags.
