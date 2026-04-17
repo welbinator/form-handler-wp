@@ -479,8 +479,8 @@ elseif ( 'forms' === $current_tab ) :
 			);
 			if ( ! empty( $connected_integrations ) ) :
 				?>
-			<div class="fhw-card" style="margin-top:20px;">
-				<h2><?php esc_html_e( 'Integrations', 'form-handler-wp' ); ?></h2>
+			<div class="fhw-integrations-section">
+				<h3 style="margin-top:24px;padding-top:20px;border-top:1px solid #f0f0f1;"><?php esc_html_e( 'Integrations', 'form-handler-wp' ); ?></h3>
 				<?php
 				foreach ( $connected_integrations as $integration ) :
 					$int_id     = $integration->get_id();
