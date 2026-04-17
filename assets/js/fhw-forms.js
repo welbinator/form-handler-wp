@@ -46,24 +46,19 @@
 ( function () {
 	'use strict';
 
-	/**
-	 * Site root URL injected by wp_localize_script().
-	 * Falls back to current origin if not available.
-	 */
-	var AJAX_URL  = ( window.fhwData && window.fhwData.ajaxUrl )  ? window.fhwData.ajaxUrl  : '/wp-admin/admin-ajax.php';
-	var NONCE_URL = ( window.fhwData && window.fhwData.nonceUrl ) ? window.fhwData.nonceUrl : '/?fhw_get_nonce=';
+	/** @type {string} Site AJAX URL injected by wp_localize_script(). */
+	const AJAX_URL  = globalThis.fhwData?.ajaxUrl  ?? '/wp-admin/admin-ajax.php';
+	const NONCE_URL = globalThis.fhwData?.nonceUrl ?? '/?fhw_get_nonce=';
 
 	/**
 	 * Initialise all forms on the page.
 	 */
 	function initForms() {
-		var forms = document.querySelectorAll( '[data-fhw-form]' );
+		const forms = document.querySelectorAll( '[data-fhw-form]' );
 		if ( ! forms.length ) {
 			return;
 		}
-		Array.prototype.forEach.call( forms, function ( form ) {
-			initForm( form );
-		} );
+		forms.forEach( ( form ) => initForm( form ) );
 	}
 
 	/**
@@ -72,21 +67,21 @@
 	 * @param {HTMLFormElement} form
 	 */
 	function initForm( form ) {
-		var action = form.getAttribute( 'data-fhw-form' );
+		const action = form.dataset.fhwForm;
 		if ( ! action ) {
 			return;
 		}
 
 		// Create a hidden nonce input.
-		var nonceInput       = document.createElement( 'input' );
-		nonceInput.type      = 'hidden';
-		nonceInput.name      = 'fhw_' + action + '_nonce';
-		nonceInput.id        = 'fhw-nonce-' + action;
-		nonceInput.value     = '';
+		const nonceInput   = document.createElement( 'input' );
+		nonceInput.type    = 'hidden';
+		nonceInput.name    = 'fhw_' + action + '_nonce';
+		nonceInput.id      = 'fhw-nonce-' + action;
+		nonceInput.value   = '';
 		form.appendChild( nonceInput );
 
 		// Ensure there is a status element.
-		var statusEl = form.querySelector( '[data-fhw-status]' );
+		let statusEl = form.querySelector( '[data-fhw-status]' );
 		if ( ! statusEl ) {
 			statusEl = document.createElement( 'div' );
 			statusEl.setAttribute( 'data-fhw-status', '' );
@@ -96,7 +91,7 @@
 		}
 
 		// Ensure there is a submit button reference.
-		var submitBtn = form.querySelector( '[type="submit"]' );
+		const submitBtn = form.querySelector( '[type="submit"]' );
 
 		// Pre-fetch nonce.
 		fetchNonce( action, nonceInput );
@@ -116,13 +111,13 @@
 	 */
 	function fetchNonce( action, nonceInput ) {
 		fetch( NONCE_URL + encodeURIComponent( action ) )
-			.then( function ( r ) { return r.json(); } )
-			.then( function ( d ) {
-				if ( d && d.nonce ) {
+			.then( ( r ) => r.json() )
+			.then( ( d ) => {
+				if ( d?.nonce ) {
 					nonceInput.value = d.nonce;
 				}
 			} )
-			.catch( function () {
+			.catch( () => {
 				// Nonce fetch failed silently — server will return 403 on submit.
 			} );
 	}
@@ -137,21 +132,20 @@
 	 * @param {HTMLElement}     statusEl
 	 */
 	function handleSubmit( form, action, nonceInput, submitBtn, statusEl ) {
-		var originalBtnText = submitBtn ? submitBtn.textContent : '';
+		const originalBtnText = submitBtn ? submitBtn.textContent : '';
 
 		// Disable button + hide old status, then fire fhw:submit.
 		setSubmitting( submitBtn, true );
 		hideStatus( statusEl );
-		dispatchFhwEvent( form, 'fhw:submit', { action: action } );
+		dispatchFhwEvent( form, 'fhw:submit', { action } );
 
 		// Collect all form fields into URLSearchParams.
-		var data = new URLSearchParams();
+		const data = new URLSearchParams();
 		data.append( 'action', action );
 		data.append( nonceInput.name, nonceInput.value );
 
 		// Collect all named inputs (except submit buttons).
-		var elements = form.elements;
-		Array.prototype.forEach.call( elements, function ( el ) {
+		Array.from( form.elements ).forEach( ( el ) => {
 			if ( ! el.name || el.disabled ) {
 				return;
 			}
@@ -176,38 +170,38 @@
 			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 			body   : data.toString()
 		} )
-		.then( function ( r ) { return r.json(); } )
-		.then( function ( response ) {
+		.then( ( r ) => r.json() )
+		.then( ( response ) => {
 			if ( response.success ) {
-				var msg = form.getAttribute( 'data-fhw-success' )
-					|| ( response.data && response.data.message )
-					|| 'Thank you! Your message has been sent.';
+				const msg = form.dataset.fhwSuccess
+					?? response.data?.message
+					?? 'Thank you! Your message has been sent.';
 				showStatus( statusEl, 'success', msg );
 				focusStatus( statusEl );
-				dispatchFhwEvent( form, 'fhw:success', { action: action, message: msg, response: response } );
+				dispatchFhwEvent( form, 'fhw:success', { action, message: msg, response } );
 
 				// Reset form unless opted out.
-				if ( 'false' !== form.getAttribute( 'data-fhw-reset' ) ) {
+				if ( 'false' !== form.dataset.fhwReset ) {
 					form.reset();
 					// Re-fetch nonce after reset so subsequent submissions work.
 					fetchNonce( action, nonceInput );
 				}
 			} else {
-				var errMsg = form.getAttribute( 'data-fhw-error' )
-					|| ( response.data && response.data.message )
-					|| 'Something went wrong. Please try again.';
+				const errMsg = form.dataset.fhwError
+					?? response.data?.message
+					?? 'Something went wrong. Please try again.';
 				showStatus( statusEl, 'error', errMsg );
 				focusStatus( statusEl );
-				dispatchFhwEvent( form, 'fhw:error', { action: action, message: errMsg, response: response } );
+				dispatchFhwEvent( form, 'fhw:error', { action, message: errMsg, response } );
 			}
 		} )
-		.catch( function () {
-			var netMsg = form.getAttribute( 'data-fhw-error' ) || 'A network error occurred. Please try again.';
+		.catch( () => {
+			const netMsg = form.dataset.fhwError ?? 'A network error occurred. Please try again.';
 			showStatus( statusEl, 'error', netMsg );
 			focusStatus( statusEl );
-			dispatchFhwEvent( form, 'fhw:error', { action: action, message: netMsg, response: null } );
+			dispatchFhwEvent( form, 'fhw:error', { action, message: netMsg, response: null } );
 		} )
-		.finally( function () {
+		.finally( () => {
 			setSubmitting( submitBtn, false, originalBtnText );
 		} );
 	}
@@ -225,10 +219,10 @@
 		}
 		btn.disabled = isSubmitting;
 		if ( isSubmitting ) {
-			btn.setAttribute( 'data-fhw-original-text', btn.textContent );
-			btn.textContent = btn.getAttribute( 'data-fhw-loading-text' ) || 'Sending\u2026';
+			btn.dataset.fhwOriginalText = btn.textContent;
+			btn.textContent = btn.dataset.fhwLoadingText ?? 'Sending\u2026';
 		} else {
-			btn.textContent = originalText || btn.getAttribute( 'data-fhw-original-text' ) || btn.textContent;
+			btn.textContent = originalText ?? btn.dataset.fhwOriginalText ?? btn.textContent;
 		}
 	}
 
@@ -255,14 +249,8 @@
 	 * @param {Object}          detail
 	 */
 	function dispatchFhwEvent( form, eventName, detail ) {
-		var evt;
-		if ( typeof CustomEvent === 'function' ) {
-			evt = new CustomEvent( eventName, { bubbles: true, cancelable: false, detail: detail } );
-		} else {
-			// IE11 fallback.
-			evt = document.createEvent( 'CustomEvent' );
-			evt.initCustomEvent( eventName, true, false, detail );
-		}
+		// CustomEvent is universally supported in all browsers we target.
+		const evt = new CustomEvent( eventName, { bubbles: true, cancelable: false, detail } );
 		form.dispatchEvent( evt );
 	}
 

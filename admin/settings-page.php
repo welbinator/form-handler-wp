@@ -700,7 +700,7 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 			</div><!-- .fhw-log-table-wrap -->
 
 			<?php // Modal overlay. ?>
-			<div id="fhw-sub-modal" role="dialog" aria-modal="true" aria-labelledby="fhw-modal-title" style="display:none;">
+			<dialog id="fhw-sub-modal" aria-labelledby="fhw-modal-title" aria-modal="true">
 				<div id="fhw-sub-modal-backdrop"></div>
 				<div id="fhw-sub-modal-box">
 					<div id="fhw-sub-modal-header">
@@ -836,13 +836,13 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 			// Wire delete button to the hidden form in this row.
 			currentDeleteForm = row.querySelector( '.fhw-delete-sub-form' );
 
-			modal.style.display = 'flex';
+			modal.showModal();
 			document.body.classList.add( 'fhw-modal-open' );
 			closeBtn.focus();
 		}
 
 		function closeModal() {
-			modal.style.display = 'none';
+			modal.close();
 			document.body.classList.remove( 'fhw-modal-open' );
 			currentDeleteForm = null;
 		}
@@ -862,7 +862,7 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 
 		// Escape key closes.
 		document.addEventListener( 'keydown', function( e ) {
-			if ( 'Escape' === e.key && modal.style.display !== 'none' ) {
+			if ( 'Escape' === e.key && modal.open ) {
 				closeModal();
 			}
 		} );

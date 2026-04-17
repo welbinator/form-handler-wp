@@ -18,12 +18,12 @@
 
 [data-fhw-status].fhw-status--success {
 	background: #edfaef;
-	color: #00a32a;
+	color: #006b1a;
 	border: 1px solid #b8e6be;
 }
 
 [data-fhw-status].fhw-status--error {
 	background: #fcf0f1;
-	color: #d63638;
+	color: #a01a1c;
 	border: 1px solid #f5c2c4;
 }

@@ -93,7 +93,8 @@ function fhw_init() {
 
 	// Boot settings / admin menu.
 	if ( is_admin() ) {
-		new FHW_Settings();
+		$settings = new FHW_Settings();
+		unset( $settings ); // Side-effects only: registers hooks in constructor.
 	}
 
 	// Register all AJAX hooks for each registered form.
@@ -159,11 +160,11 @@ function fhw_generic_handler() {
 /**
  * Intercept wp_mail() and route through Brevo.
  *
- * @param null|bool $short_circuit Short-circuit return value.
- * @param array     $atts          wp_mail() arguments.
+ * @param null|bool $_short_circuit Short-circuit return value (unused; required by pre_wp_mail filter signature).
+ * @param array     $atts           wp_mail() arguments.
  * @return bool True if sent, false on error.
  */
-function fhw_intercept_wp_mail( $short_circuit, $atts ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundBeforeLastUsed
+function fhw_intercept_wp_mail( $_short_circuit, $atts ) {
 	$to      = isset( $atts['to'] ) ? $atts['to'] : '';
 	$subject = isset( $atts['subject'] ) ? $atts['subject'] : '';
 	$message = isset( $atts['message'] ) ? $atts['message'] : '';

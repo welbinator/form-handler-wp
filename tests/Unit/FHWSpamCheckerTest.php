@@ -19,6 +19,15 @@ use Codeception\Test\Unit;
  */
 class FHWSpamCheckerTest extends Unit {
 
+	/** @var string Default user agent used across spam tests. */
+	const USER_AGENT = 'Mozilla/5.0';
+
+	/** @var string Repeated test name fixture. */
+	const TEST_NAME = 'Jane Doe';
+
+	/** @var string Spammy bot email used in combo tests. */
+	const SPAMMY_EMAIL = 'john_doe@gmail.com';
+
 	/**
 	 * Spam checker instance under test.
 	 *
@@ -43,7 +52,7 @@ class FHWSpamCheckerTest extends Unit {
 	 */
 	public function testCleanSubmissionReturnsFalse(): void {
 		$fields = array(
-			'name'    => 'Jane Doe',
+			'name'    => self::TEST_NAME,
 			'email'   => 'jane@example.com',
 			'message' => 'Hello! I am interested in your services. Please get back to me.',
 		);
@@ -62,7 +71,7 @@ class FHWSpamCheckerTest extends Unit {
 	 */
 	public function testEmptyUserAgentFlagsSpam(): void {
 		$fields = array(
-			'name'    => 'Jane Doe',
+			'name'    => self::TEST_NAME,
 			'email'   => 'jane@example.com',
 			'message' => 'Hello, I would like more information.',
 		);
@@ -100,7 +109,7 @@ class FHWSpamCheckerTest extends Unit {
 			'message' => '12345678901234',
 		);
 
-		$result = $this->checker->is_spam( $fields, 'Mozilla/5.0', array() );
+		$result = $this->checker->is_spam( $fields, self::USER_AGENT, array() );
 
 		$this->assertSame( 'all_digits', $result, 'All-digit field > 10 chars should return all_digits reason' );
 	}
@@ -111,7 +120,7 @@ class FHWSpamCheckerTest extends Unit {
 	 */
 	public function testShortAllDigitValueIsNotSpam(): void {
 		$fields = array(
-			'name'    => 'Jane Doe',
+			'name'    => self::TEST_NAME,
 			'zip'     => '52401',
 			'message' => 'Please contact me about your services.',
 		);
@@ -130,7 +139,7 @@ class FHWSpamCheckerTest extends Unit {
 			'message' => 'Hi there, please call me back about this.',
 		);
 
-		$result = $this->checker->is_spam( $fields, 'Mozilla/5.0', array() );
+		$result = $this->checker->is_spam( $fields, self::USER_AGENT, array() );
 
 		$this->assertFalse( $result, '10-digit value should not be flagged (boundary: must be > 10 to trigger)' );
 	}
@@ -149,7 +158,7 @@ class FHWSpamCheckerTest extends Unit {
 			'message' => 'SuperLongSpamWordNoSpaces',
 		);
 
-		$result = $this->checker->is_spam( $fields, 'Mozilla/5.0', array() );
+		$result = $this->checker->is_spam( $fields, self::USER_AGENT, array() );
 
 		$this->assertSame( 'no_spaces', $result, 'Long no-space field should return no_spaces reason' );
 	}
@@ -163,7 +172,7 @@ class FHWSpamCheckerTest extends Unit {
 			'message' => 'Hello there, how are you doing today in Cedar Rapids?',
 		);
 
-		$result = $this->checker->is_spam( $fields, 'Mozilla/5.0', array() );
+		$result = $this->checker->is_spam( $fields, self::USER_AGENT, array() );
 
 		$this->assertFalse( $result, 'Short no-space value should not be flagged' );
 	}
@@ -177,7 +186,7 @@ class FHWSpamCheckerTest extends Unit {
 			'email' => 'james@apexbranding.design',
 		);
 
-		$result = $this->checker->is_spam( $fields, 'Mozilla/5.0', array() );
+		$result = $this->checker->is_spam( $fields, self::USER_AGENT, array() );
 
 		$this->assertFalse( $result, 'Email address field should not trigger no_spaces rule' );
 	}
@@ -196,7 +205,7 @@ class FHWSpamCheckerTest extends Unit {
 			'message' => 'Hi! I just came across your website and wanted to reach out.',
 		);
 
-		$result = $this->checker->is_spam( $fields, 'Mozilla/5.0', array() );
+		$result = $this->checker->is_spam( $fields, self::USER_AGENT, array() );
 
 		$this->assertSame( 'ai_greeting', $result, '"Hi! I just" should return ai_greeting reason' );
 	}
@@ -209,7 +218,7 @@ class FHWSpamCheckerTest extends Unit {
 			'message' => 'Hello there! I just noticed your site and think we could partner.',
 		);
 
-		$result = $this->checker->is_spam( $fields, 'Mozilla/5.0', array() );
+		$result = $this->checker->is_spam( $fields, self::USER_AGENT, array() );
 
 		$this->assertSame( 'ai_greeting', $result );
 	}
@@ -222,7 +231,7 @@ class FHWSpamCheckerTest extends Unit {
 			'message' => 'Hey there! I just read your blog post.',
 		);
 
-		$result = $this->checker->is_spam( $fields, 'Mozilla/5.0', array() );
+		$result = $this->checker->is_spam( $fields, self::USER_AGENT, array() );
 
 		$this->assertSame( 'ai_greeting', $result );
 	}
@@ -235,7 +244,7 @@ class FHWSpamCheckerTest extends Unit {
 			'message' => 'HI! I just wanted to say hello.',
 		);
 
-		$result = $this->checker->is_spam( $fields, 'Mozilla/5.0', array() );
+		$result = $this->checker->is_spam( $fields, self::USER_AGENT, array() );
 
 		$this->assertSame( 'ai_greeting', $result, 'AI greeting check must be case-insensitive' );
 	}
@@ -266,7 +275,7 @@ class FHWSpamCheckerTest extends Unit {
 			'message' => 'You should buy our product <a href="https://spam.example.com">click here</a>.',
 		);
 
-		$result = $this->checker->is_spam( $fields, 'Mozilla/5.0', array() );
+		$result = $this->checker->is_spam( $fields, self::USER_AGENT, array() );
 
 		$this->assertSame( 'buy_link', $result, 'Field with buy + <a should return buy_link reason' );
 	}
@@ -292,7 +301,7 @@ class FHWSpamCheckerTest extends Unit {
 			'message' => 'BUY NOW <a href="http://spam.test">here</a>',
 		);
 
-		$result = $this->checker->is_spam( $fields, 'Mozilla/5.0', array() );
+		$result = $this->checker->is_spam( $fields, self::USER_AGENT, array() );
 
 		$this->assertSame( 'buy_link', $result );
 	}
@@ -308,12 +317,12 @@ class FHWSpamCheckerTest extends Unit {
 	public function testSpammyEmailWithUrlFlagsSpam(): void {
 		$fields = array(
 			'name'    => 'John Doe',
-			'email'   => 'john_doe@gmail.com',
+			'email'   => self::SPAMMY_EMAIL,
 			'message' => 'Please visit our site for more information about our services.',
 			'website' => 'http://spam-site.example.com',
 		);
 
-		$result = $this->checker->is_spam( $fields, 'Mozilla/5.0', array() );
+		$result = $this->checker->is_spam( $fields, self::USER_AGENT, array() );
 
 		$this->assertSame( 'spammy_email_url', $result, 'word_word@gmail.com + URL should return spammy_email_url reason' );
 	}
@@ -327,7 +336,7 @@ class FHWSpamCheckerTest extends Unit {
 			'message' => 'Check https://example.com for more.',
 		);
 
-		$result = $this->checker->is_spam( $fields, 'Mozilla/5.0', array() );
+		$result = $this->checker->is_spam( $fields, self::USER_AGENT, array() );
 
 		$this->assertSame( 'spammy_email_url', $result );
 	}
@@ -356,7 +365,7 @@ class FHWSpamCheckerTest extends Unit {
 			'message' => 'Just checking in, no links here.',
 		);
 
-		$result = $this->checker->is_spam( $fields, 'Mozilla/5.0', array() );
+		$result = $this->checker->is_spam( $fields, self::USER_AGENT, array() );
 
 		$this->assertFalse( $result, 'Spammy email pattern alone (no URL) should not be flagged' );
 	}
@@ -371,7 +380,7 @@ class FHWSpamCheckerTest extends Unit {
 	 */
 	public function testDisabledNoUserAgentRuleIsSkipped(): void {
 		$fields = array(
-			'name'    => 'Jane Doe',
+			'name'    => self::TEST_NAME,
 			'message' => 'Hello, I would like more information about your services.',
 		);
 
@@ -395,7 +404,7 @@ class FHWSpamCheckerTest extends Unit {
 	 */
 	public function testDisabledAllDigitsRuleIsSkipped(): void {
 		$fields = array(
-			'name'    => 'Jane Doe',
+			'name'    => self::TEST_NAME,
 			'phone'   => '12345678901234',
 			'message' => 'Hello, I would like more information about your services please.',
 		);
@@ -409,7 +418,7 @@ class FHWSpamCheckerTest extends Unit {
 			'spammy_email_url' => '1',
 		);
 
-		$result = $this->checker->is_spam( $fields, 'Mozilla/5.0', $enabled_rules );
+		$result = $this->checker->is_spam( $fields, self::USER_AGENT, $enabled_rules );
 
 		$this->assertFalse( $result, 'Disabled all_digits rule should not flag all-digit field' );
 	}
@@ -433,7 +442,7 @@ class FHWSpamCheckerTest extends Unit {
 			'spammy_email_url' => '1',
 		);
 
-		$result = $this->checker->is_spam( $fields, 'Mozilla/5.0', $enabled_rules );
+		$result = $this->checker->is_spam( $fields, self::USER_AGENT, $enabled_rules );
 
 		$this->assertFalse( $result, 'Disabled no_spaces rule should not flag long no-space field' );
 	}
@@ -457,7 +466,7 @@ class FHWSpamCheckerTest extends Unit {
 			'spammy_email_url' => '1',
 		);
 
-		$result = $this->checker->is_spam( $fields, 'Mozilla/5.0', $enabled_rules );
+		$result = $this->checker->is_spam( $fields, self::USER_AGENT, $enabled_rules );
 
 		$this->assertFalse( $result, 'Disabled ai_greeting rule should not flag AI-opener message' );
 	}
@@ -480,7 +489,7 @@ class FHWSpamCheckerTest extends Unit {
 			'spammy_email_url' => '1',
 		);
 
-		$result = $this->checker->is_spam( $fields, 'Mozilla/5.0', $enabled_rules );
+		$result = $this->checker->is_spam( $fields, self::USER_AGENT, $enabled_rules );
 
 		$this->assertFalse( $result, 'Disabled buy_link rule should not flag buy + hyperlink message' );
 	}
@@ -491,7 +500,7 @@ class FHWSpamCheckerTest extends Unit {
 	 */
 	public function testDisabledSpammyEmailUrlRuleIsSkipped(): void {
 		$fields = array(
-			'email'   => 'john_doe@gmail.com',
+			'email'   => self::SPAMMY_EMAIL,
 			'message' => 'Please visit our site for more information.',
 			'website' => 'http://spam-site.example.com',
 		);
@@ -505,7 +514,7 @@ class FHWSpamCheckerTest extends Unit {
 			'spammy_email_url' => '0',
 		);
 
-		$result = $this->checker->is_spam( $fields, 'Mozilla/5.0', $enabled_rules );
+		$result = $this->checker->is_spam( $fields, self::USER_AGENT, $enabled_rules );
 
 		$this->assertFalse( $result, 'Disabled spammy_email_url rule should not flag email + URL combo' );
 	}
@@ -517,7 +526,7 @@ class FHWSpamCheckerTest extends Unit {
 	public function testEmptyEnabledRulesRunsAllChecks(): void {
 		// This submission would be caught by no_user_agent when all rules run.
 		$fields = array(
-			'name'    => 'Jane Doe',
+			'name'    => self::TEST_NAME,
 			'message' => 'Hello, I would like more information about your services.',
 		);
 
@@ -533,11 +542,11 @@ class FHWSpamCheckerTest extends Unit {
 		// Use a message that contains 'http' (URL signal) but also has spaces
 		// so no_spaces does not fire before spammy_email_url.
 		$fields = array(
-			'email'   => 'john_doe@gmail.com',
+			'email'   => self::SPAMMY_EMAIL,
 			'message' => 'Please check out http://spam-site.example.com for more information.',
 		);
 
-		$result = $this->checker->is_spam( $fields, 'Mozilla/5.0', array() );
+		$result = $this->checker->is_spam( $fields, self::USER_AGENT, array() );
 
 		$this->assertSame( 'spammy_email_url', $result, 'Empty $enabled_rules should catch spammy_email_url (backwards compat)' );
 	}

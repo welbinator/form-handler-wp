@@ -7,6 +7,8 @@
  * - Test email AJAX request
  * - Delete form confirmation
  * - Clear log confirmation
+ * - Submissions modal
+ * - Integration toggles and remote select population
  *
  * @package Form_Handler_WP
  */
@@ -19,7 +21,7 @@
 	// Tab navigation
 	// -----------------------------------------------------------------------
 	function initTabs() {
-		var $tabs = $( '.fhw-tab-nav a' );
+		const $tabs = $( '.fhw-tab-nav a' );
 
 		$tabs.on( 'click', function () {
 			$tabs.removeClass( 'fhw-tab-active' );
@@ -30,10 +32,10 @@
 	// -----------------------------------------------------------------------
 	// Dynamic field schema rows
 	// -----------------------------------------------------------------------
-	var fieldRowIndex = $( '.fhw-field-row' ).length;
+	let fieldRowIndex = $( '.fhw-field-row' ).length;
 
 	function buildFieldRow( index ) {
-		var typeOptions =
+		const typeOptions =
 			'<option value="text">text</option>' +
 			'<option value="email">email</option>' +
 			'<option value="textarea">textarea</option>' +
@@ -59,8 +61,8 @@
 	}
 
 	function initFieldSchema() {
-		var $container = $( '#fhw-field-rows' );
-		var $addBtn    = $( '#fhw-add-field-btn' );
+		const $container = $( '#fhw-field-rows' );
+		const $addBtn    = $( '#fhw-add-field-btn' );
 
 		if ( ! $container.length ) {
 			return;
@@ -80,16 +82,16 @@
 	// Test email
 	// -----------------------------------------------------------------------
 	function initTestEmail() {
-		var $btn    = $( '#fhw-test-email-btn' );
-		var $input  = $( '#fhw-test-email-address' );
-		var $result = $( '#fhw-test-result' );
+		const $btn    = $( '#fhw-test-email-btn' );
+		const $input  = $( '#fhw-test-email-address' );
+		const $result = $( '#fhw-test-result' );
 
 		if ( ! $btn.length ) {
 			return;
 		}
 
 		$btn.on( 'click', function () {
-			var email = $input.val().trim();
+			const email = $input.val().trim();
 
 			if ( ! email ) {
 				$result
@@ -114,16 +116,12 @@
 						$result
 							.removeClass( 'fhw-error' )
 							.addClass( 'fhw-success' )
-							.text( response.data.message || fhwAdmin.testSuccess );
+							.text( response.data?.message ?? fhwAdmin.testSuccess );
 					} else {
 						$result
 							.removeClass( 'fhw-success' )
 							.addClass( 'fhw-error' )
-							.text(
-								( response.data && response.data.message )
-									? response.data.message
-									: fhwAdmin.testFail
-							);
+							.text( response.data?.message ?? fhwAdmin.testFail );
 					}
 				}
 			).fail( function () {
@@ -142,7 +140,7 @@
 	// -----------------------------------------------------------------------
 	function initDeleteConfirm() {
 		$( document ).on( 'submit', '.fhw-delete-form', function () {
-			return window.confirm( fhwAdmin.confirmDelete );
+			return globalThis.confirm( fhwAdmin.confirmDelete );
 		} );
 	}
 
@@ -151,7 +149,7 @@
 	// -----------------------------------------------------------------------
 	function initClearLogConfirm() {
 		$( document ).on( 'submit', '#fhw-clear-log-form', function () {
-			return window.confirm( fhwAdmin.confirmClearLog );
+			return globalThis.confirm( fhwAdmin.confirmClearLog );
 		} );
 	}
 
@@ -159,8 +157,8 @@
 	// Auto-reply row toggle
 	// -----------------------------------------------------------------------
 	function initAutoreplyToggle() {
-		var $checkbox = $( '#fhw_autoreply_enabled' );
-		var $rows     = $( '.fhw-autoreply-row' );
+		const $checkbox = $( '#fhw_autoreply_enabled' );
+		const $rows     = $( '.fhw-autoreply-row' );
 
 		if ( ! $checkbox.length ) {
 			return;
@@ -182,8 +180,8 @@
 	// Spam filter rules row toggle
 	// -----------------------------------------------------------------------
 	function initSpamFilterToggle() {
-		var $checkbox = $( '#fhw_spam_filter' );
-		var $rows     = $( '.fhw-spam-rules-row' );
+		const $checkbox = $( '#fhw_spam_filter' );
+		const $rows     = $( '.fhw-spam-rules-row' );
 
 		if ( ! $checkbox.length ) {
 			return;
@@ -202,32 +200,13 @@
 	}
 
 	// -----------------------------------------------------------------------
-	// Boot
-	// -----------------------------------------------------------------------
-	$( function () {
-		initTabs();
-		initFieldSchema();
-		initTestEmail();
-		initDeleteConfirm();
-		initClearLogConfirm();
-		initAutoreplyToggle();
-		initSpamFilterToggle();
-	} );
-
-} )( jQuery );
-
-// Immediately-invoked integration extension (appended after main closure)
-( function ( $ ) {
-	'use strict';
-
-	// -----------------------------------------------------------------------
 	// Integration toggle: show/hide per-integration fields
 	// -----------------------------------------------------------------------
 	function initIntegrationToggles() {
 		$( '.fhw-integration-toggle' ).each( function () {
-			var $cb     = $( this );
-			var intId   = $cb.data( 'integration' );
-			var $fields = $( '.fhw-integration-fields[data-integration="' + intId + '"]' );
+			const $cb     = $( this );
+			const intId   = $cb.data( 'integration' );
+			const $fields = $( '.fhw-integration-fields[data-integration="' + intId + '"]' );
 
 			function toggleFields() {
 				if ( $cb.is( ':checked' ) ) {
@@ -264,9 +243,9 @@
 		}
 		$select.data( 'loaded', true );
 
-		var intId      = $select.data( 'integration' );
-		var remoteKey  = $select.data( 'remote-key' );
-		var savedValue = $select.val(); // pre-filled by PHP if editing
+		const intId      = $select.data( 'integration' );
+		const remoteKey  = $select.data( 'remote-key' );
+		const savedValue = $select.val(); // pre-filled by PHP if editing
 
 		$select.empty().append( $( '<option>' ).val( '' ).text( '\u2014 Loading\u2026 \u2014' ) );
 
@@ -283,7 +262,7 @@
 
 				if ( response.success && response.data.options.length ) {
 					$.each( response.data.options, function ( i, opt ) {
-						var $opt = $( '<option>' ).val( opt.value ).text( opt.label );
+						const $opt = $( '<option>' ).val( opt.value ).text( opt.label );
 						if ( opt.value === savedValue ) {
 							$opt.prop( 'selected', true );
 						}
@@ -298,7 +277,17 @@
 		} );
 	}
 
+	// -----------------------------------------------------------------------
+	// Boot
+	// -----------------------------------------------------------------------
 	$( function () {
+		initTabs();
+		initFieldSchema();
+		initTestEmail();
+		initDeleteConfirm();
+		initClearLogConfirm();
+		initAutoreplyToggle();
+		initSpamFilterToggle();
 		initIntegrationToggles();
 	} );
 
