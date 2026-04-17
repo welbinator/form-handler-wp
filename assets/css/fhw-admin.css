@@ -25,6 +25,9 @@
 	gap: 0;
 	border-bottom: 1px solid #c3c4c7;
 	margin-bottom: 24px;
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+	flex-wrap: nowrap;
 }
 
 .fhw-tab-nav a {
@@ -39,6 +42,8 @@
 	margin-bottom: -1px;
 	border-radius: 3px 3px 0 0;
 	background: transparent;
+	white-space: nowrap;
+	flex-shrink: 0;
 }
 
 .fhw-tab-nav a:hover {
@@ -62,6 +67,15 @@
 	padding: 24px 28px;
 	margin-bottom: 24px;
 	box-shadow: 0 1px 1px rgba(0,0,0,.04);
+	overflow: hidden;
+}
+
+/* Scrollable table wrapper — applied on all screen sizes */
+.fhw-log-table-wrap {
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+	margin: 0 -4px;
+	padding: 0 4px;
 }
 
 .fhw-card h2 {
@@ -460,3 +474,163 @@ body.fhw-modal-open {
 	overflow: hidden;
 }
 
+
+/* -----------------------------------------------------------------------
+   Responsive — mobile / narrow admin panels
+   Breakpoint: 782px matches WP's own mobile admin breakpoint.
+----------------------------------------------------------------------- */
+@media screen and (max-width: 782px) {
+
+	.fhw-wrap {
+		max-width: 100%;
+	}
+
+	/* Tab nav — smaller font on mobile (scroll already handled globally) */
+	.fhw-tab-nav a {
+		padding: 8px 12px;
+		font-size: 13px;
+	}
+
+	/* ---- Cards ---- */
+	.fhw-card {
+		padding: 16px 14px;
+	}
+
+	/* ---- Form table: stack label above input ---- */
+	.fhw-form-table,
+	.fhw-form-table tbody,
+	.fhw-form-table tr,
+	.fhw-form-table th,
+	.fhw-form-table td {
+		display: block;
+		width: 100%;
+	}
+
+	.fhw-form-table th {
+		width: 100%;
+		padding: 14px 0 2px;
+		font-weight: 600;
+	}
+
+	.fhw-form-table td {
+		padding: 0 0 14px;
+	}
+
+	.fhw-form-table input[type="text"],
+	.fhw-form-table input[type="email"],
+	.fhw-form-table input[type="number"],
+	.fhw-form-table input[type="password"],
+	.fhw-form-table textarea {
+		max-width: 100%;
+		box-sizing: border-box;
+	}
+
+	/* API key row */
+	.fhw-api-key-row {
+		max-width: 100%;
+		flex-wrap: wrap;
+	}
+
+	.fhw-api-key-row input {
+		width: 100%;
+	}
+
+	/* Test email row */
+	.fhw-test-email-row {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.fhw-test-email-row input[type="email"] {
+		width: 100%;
+	}
+
+	/* Hide less-important columns on registered forms table */
+	.fhw-forms-table th:nth-child(3),
+	.fhw-forms-table td:nth-child(3) {
+		display: none;
+	}
+
+	/* Log table — allow text to wrap */
+	.fhw-log-table td {
+		white-space: normal;
+		max-width: 120px;
+	}
+
+	/* Submissions table — hide date column (it's in the modal) */
+	.fhw-submissions-table th:nth-child(1),
+	.fhw-submissions-table td:nth-child(1) {
+		display: none;
+	}
+
+	/* ---- Field schema builder ---- */
+	.fhw-field-schema-wrap {
+		max-width: 100%;
+	}
+
+	.fhw-field-row {
+		flex-wrap: wrap;
+	}
+
+	.fhw-field-row select {
+		width: 100%;
+	}
+
+	/* ---- Modal: full-screen on mobile ---- */
+	#fhw-sub-modal {
+		align-items: flex-end;
+	}
+
+	#fhw-sub-modal-box {
+		width: 100%;
+		max-width: 100%;
+		max-height: 92vh;
+		border-radius: 12px 12px 0 0;
+	}
+
+	#fhw-sub-modal-fields th {
+		width: 90px;
+		padding: 8px 12px;
+	}
+
+	#fhw-sub-modal-fields td {
+		padding: 8px 12px;
+	}
+
+	#fhw-sub-modal-meta {
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+
+	#fhw-sub-modal-footer {
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+
+	/* ---- Pagination ---- */
+	.fhw-pagination {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+}
+
+/* Extra-small screens */
+@media screen and (max-width: 480px) {
+
+	.fhw-card {
+		padding: 12px 10px;
+	}
+
+	/* Forms table — hide recipients too */
+	.fhw-forms-table th:nth-child(2),
+	.fhw-forms-table td:nth-child(2) {
+		display: none;
+	}
+
+	/* Submissions table — hide fields column too */
+	.fhw-submissions-table th:nth-child(3),
+	.fhw-submissions-table td:nth-child(3) {
+		display: none;
+	}
+}

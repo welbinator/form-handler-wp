@@ -168,7 +168,8 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 		<?php if ( empty( $forms ) ) : ?>
 			<p class="fhw-empty-state"><?php esc_html_e( 'No form handlers registered yet. Add one below.', 'form-handler-wp' ); ?></p>
 		<?php else : ?>
-			<table class="fhw-forms-table">
+			<div class="fhw-log-table-wrap">
+			<div class="fhw-log-table-wrap"><table class="fhw-forms-table">
 				<thead>
 					<tr>
 						<th><?php esc_html_e( 'Action Name', 'form-handler-wp' ); ?></th>
@@ -221,6 +222,7 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 					<?php endforeach; ?>
 				</tbody>
 			</table>
+			</div><!-- .fhw-log-table-wrap -->
 		<?php endif; ?>
 	</div>
 
@@ -448,6 +450,7 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 					</td>
 				</tr>
 			</table>
+			</div><!-- /.fhw-log-table-wrap -->
 
 			<?php
 			if ( $is_editing ) {
@@ -518,7 +521,8 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 				?>
 			</p>
 
-			<table class="fhw-log-table fhw-submissions-table">
+			<div class="fhw-log-table-wrap">
+			<div class="fhw-log-table-wrap"><table class="fhw-log-table fhw-submissions-table">
 				<thead>
 					<tr>
 						<th><?php esc_html_e( 'Date/Time', 'form-handler-wp' ); ?></th>
@@ -600,6 +604,7 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 					<?php endforeach; ?>
 				</tbody>
 			</table>
+			</div><!-- .fhw-log-table-wrap -->
 
 			<?php // Modal overlay. ?>
 			<div id="fhw-sub-modal" role="dialog" aria-modal="true" aria-labelledby="fhw-modal-title" style="display:none;">
@@ -617,6 +622,8 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 					<table id="fhw-sub-modal-fields">
 						<tbody></tbody>
 					</table>
+					</div><!-- /.fhw-log-table-wrap -->
+			</div><!-- .fhw-log-table-wrap -->
 					<div id="fhw-sub-modal-footer">
 						<button type="button" id="fhw-modal-delete-btn" class="button button-link-delete">
 							<?php esc_html_e( 'Delete Submission', 'form-handler-wp' ); ?>
@@ -784,7 +791,8 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 		<?php if ( empty( $log ) ) : ?>
 			<p class="fhw-empty-state"><?php esc_html_e( 'No emails logged yet.', 'form-handler-wp' ); ?></p>
 		<?php else : ?>
-			<table class="fhw-log-table">
+			<div class="fhw-log-table-wrap">
+			<div class="fhw-log-table-wrap"><table class="fhw-log-table">
 				<thead>
 					<tr>
 						<th><?php esc_html_e( 'Date', 'form-handler-wp' ); ?></th>
@@ -813,6 +821,7 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 					<?php endforeach; ?>
 				</tbody>
 			</table>
+			</div><!-- .fhw-log-table-wrap -->
 
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"
 				id="fhw-clear-log-form" style="margin-top:16px;">
@@ -860,7 +869,8 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 
 	<div class="fhw-card">
 		<h2><?php esc_html_e( 'Optional Form Attributes', 'form-handler-wp' ); ?></h2>
-		<table class="fhw-forms-table">
+		<div class="fhw-log-table-wrap">
+		<div class="fhw-log-table-wrap"><table class="fhw-forms-table">
 			<thead>
 				<tr>
 					<th><?php esc_html_e( 'Attribute', 'form-handler-wp' ); ?></th>
@@ -890,12 +900,14 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 				</tr>
 			</tbody>
 		</table>
+		</div><!-- .fhw-log-table-wrap -->
 	</div>
 
 	<div class="fhw-card">
 		<h2><?php esc_html_e( 'Custom Events &amp; Extensibility', 'form-handler-wp' ); ?></h2>
 		<p><?php esc_html_e( 'The plugin fires custom DOM events on the form element after each submission. Use these to run your own JavaScript &#8212; analytics tracking, redirects, modals, conditional logic &#8212; without touching the plugin.', 'form-handler-wp' ); ?></p>
-		<table class="fhw-forms-table">
+		<div class="fhw-log-table-wrap">
+		<div class="fhw-log-table-wrap"><table class="fhw-forms-table">
 			<thead>
 				<tr>
 					<th><?php esc_html_e( 'Event', 'form-handler-wp' ); ?></th>
@@ -921,6 +933,7 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 				</tr>
 			</tbody>
 		</table>
+		</div><!-- .fhw-log-table-wrap -->
 		<p style="margin-top:16px;"><?php esc_html_e( 'All events bubble, so you can listen on document to catch any form on the page.', 'form-handler-wp' ); ?></p>
 		<p><?php esc_html_e( 'Example &#8212; fire a Google Analytics event on success:', 'form-handler-wp' ); ?></p>
 		<pre style="background:#f6f7f7;padding:16px;border-radius:4px;overflow:auto;font-size:13px;">document.querySelector( &#39;[data-fhw-form=&quot;contact_form&quot;]&#39; )
