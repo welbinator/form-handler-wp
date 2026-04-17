@@ -468,7 +468,6 @@ elseif ( 'forms' === $current_tab ) :
 					</td>
 				</tr>
 			</table>
-			</div><!-- /.fhw-log-table-wrap -->
 
 			<?php
 			// Integrations section — only show if any integration is connected.
