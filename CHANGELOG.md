@@ -7,6 +7,13 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.3.2] — 2026-04-17
+
+### Improved
+- **Registered Forms tab** — "Add New Form Handler" form is now hidden by default and revealed by clicking an "Add New Form Handler" button in the card header. Keeps the page clean when you just want to view or manage existing forms.
+
+---
+
 ## [1.3.1] — 2026-04-17
 
 ### Added
