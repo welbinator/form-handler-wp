@@ -805,7 +805,7 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 						<th><?php esc_html_e( 'Recipient', 'form-handler-wp' ); ?></th>
 						<th><?php esc_html_e( 'Subject', 'form-handler-wp' ); ?></th>
 						<th><?php esc_html_e( 'Status', 'form-handler-wp' ); ?></th>
-						<th><?php esc_html_e( 'Message ID', 'form-handler-wp' ); ?></th>
+						<th><?php esc_html_e( 'ID', 'form-handler-wp' ); ?></th>
 					</tr>
 				</thead>
 				<tbody>
