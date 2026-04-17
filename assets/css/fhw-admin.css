@@ -576,16 +576,18 @@ body.fhw-modal-open {
 		width: 100%;
 	}
 
-	/* ---- Modal: full-screen on mobile ---- */
+	/* ---- Modal: centered with max height on mobile ---- */
 	#fhw-sub-modal {
-		align-items: flex-end;
+		align-items: center;
+		padding: 12px;
+		box-sizing: border-box;
 	}
 
 	#fhw-sub-modal-box {
 		width: 100%;
 		max-width: 100%;
-		max-height: 92vh;
-		border-radius: 12px 12px 0 0;
+		max-height: calc(100vh - 80px);
+		border-radius: 6px;
 	}
 
 	#fhw-sub-modal-fields th {
