@@ -164,13 +164,27 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 		</form>
 	</div>
 
-<?php elseif ( 'forms' === $current_tab ) : ?>
+	<?php
+elseif ( 'forms' === $current_tab ) :
+	// Edit mode detection (moved here so $is_editing is available for the whole tab).
+	$editing_action = isset( $_GET['edit'] ) ? sanitize_key( wp_unslash( $_GET['edit'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+	$editing_form   = '' !== $editing_action ? $registry->get_form( $editing_action ) : false;
+	$is_editing     = false !== $editing_form;
+	?>
 
 	<div class="fhw-card">
-		<h2><?php esc_html_e( 'Registered Form Handlers', 'form-handler-wp' ); ?></h2>
+		<div class="fhw-card-header">
+			<h2><?php esc_html_e( 'Registered Form Handlers', 'form-handler-wp' ); ?></h2>
+			<?php if ( ! $is_editing ) : ?>
+				<button type="button" id="fhw-show-add-form" class="button button-primary">
+					<span class="dashicons dashicons-plus-alt2" style="vertical-align:middle;margin-top:-2px;"></span>
+					<?php esc_html_e( 'Add New Form Handler', 'form-handler-wp' ); ?>
+				</button>
+			<?php endif; ?>
+		</div>
 
 		<?php if ( empty( $forms ) ) : ?>
-			<p class="fhw-empty-state"><?php esc_html_e( 'No form handlers registered yet. Add one below.', 'form-handler-wp' ); ?></p>
+			<p class="fhw-empty-state"><?php esc_html_e( 'No form handlers registered yet. Click &quot;Add New Form Handler&quot; to get started.', 'form-handler-wp' ); ?></p>
 		<?php else : ?>
 			<div class="fhw-log-table-wrap">
 			<div class="fhw-log-table-wrap"><table class="fhw-forms-table">
@@ -236,14 +250,8 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 		<?php endif; ?>
 	</div>
 
-	<?php
-	// Edit mode detection.
-	$editing_action = isset( $_GET['edit'] ) ? sanitize_key( wp_unslash( $_GET['edit'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
-	$editing_form   = '' !== $editing_action ? $registry->get_form( $editing_action ) : false;
-	$is_editing     = false !== $editing_form;
-	?>
 
-	<div class="fhw-card">
+	<div id="fhw-add-form-card" class="fhw-card" style="<?php echo $is_editing ? '' : 'display:none;'; ?>">
 		<h2><?php echo $is_editing ? esc_html__( 'Edit Form Handler', 'form-handler-wp' ) : esc_html__( 'Add New Form Handler', 'form-handler-wp' ); ?></h2>
 
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -460,7 +468,6 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 					</td>
 				</tr>
 			</table>
-			</div><!-- /.fhw-log-table-wrap -->
 
 			<?php
 			// Integrations section — only show if any integration is connected.
@@ -471,8 +478,8 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 			);
 			if ( ! empty( $connected_integrations ) ) :
 				?>
-			<div class="fhw-card" style="margin-top:20px;">
-				<h2><?php esc_html_e( 'Integrations', 'form-handler-wp' ); ?></h2>
+			<div class="fhw-integrations-section">
+				<h3 style="margin-top:24px;padding-top:20px;border-top:1px solid #f0f0f1;"><?php esc_html_e( 'Integrations', 'form-handler-wp' ); ?></h3>
 				<?php
 				foreach ( $connected_integrations as $integration ) :
 					$int_id     = $integration->get_id();

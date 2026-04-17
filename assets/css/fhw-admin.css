@@ -86,6 +86,24 @@
 	font-size: 16px;
 }
 
+/* Card header with title + action button side by side */
+.fhw-card-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding-bottom: 12px;
+	border-bottom: 1px solid #f0f0f1;
+	margin-bottom: 0;
+}
+
+.fhw-card-header h2 {
+	margin: 0;
+	padding: 0;
+	border: none;
+	flex: 1;
+}
+
 /* -----------------------------------------------------------------------
    Form table overrides
 ----------------------------------------------------------------------- */

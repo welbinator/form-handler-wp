@@ -200,6 +200,25 @@
 	}
 
 	// -----------------------------------------------------------------------
+	// Add New Form Handler toggle
+	// -----------------------------------------------------------------------
+	function initAddFormToggle() {
+		const $btn  = $( '#fhw-show-add-form' );
+		const $card = $( '#fhw-add-form-card' );
+
+		if ( ! $btn.length || ! $card.length ) {
+			return;
+		}
+
+		$btn.on( 'click', function () {
+			$card.slideDown( 200 );
+			$btn.hide();
+			// Focus the first input in the form.
+			$card.find( 'input:visible:first' ).trigger( 'focus' );
+		} );
+	}
+
+	// -----------------------------------------------------------------------
 	// Integration toggle: show/hide per-integration fields
 	// -----------------------------------------------------------------------
 	function initIntegrationToggles() {
@@ -282,6 +301,7 @@
 	// -----------------------------------------------------------------------
 	$( function () {
 		initTabs();
+		initAddFormToggle();
 		initFieldSchema();
 		initTestEmail();
 		initDeleteConfirm();
