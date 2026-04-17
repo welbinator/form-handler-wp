@@ -44,6 +44,10 @@ function fhw_check_for_update( $transient ) {
 	}
 
 	if ( version_compare( $release['version'], $current_version, '<=' ) ) {
+		// Cached release is not newer — delete the transient so the next WP
+		// update check always fetches fresh data from GitHub rather than
+		// serving stale cached "no update" results for up to 12 hours.
+		delete_transient( 'fhw_github_latest_release' );
 		return $transient;
 	}
 
