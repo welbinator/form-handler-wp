@@ -183,6 +183,18 @@ class FHW_Form_Registry {
 			'autoreply_message'          => wp_kses_post( wp_unslash( $data['autoreply_message'] ?? '' ) ),
 		);
 
+		// Integration fields — one enabled flag + all form fields per integration.
+		foreach ( FHW_Integration_Registry::all() as $integration ) {
+			$id                   = $integration->get_id();
+			$en_key               = 'integration_' . $id . '_enabled';
+			$sanitized[ $en_key ] = ! empty( $data[ $en_key ] ) ? '1' : '0';
+
+			foreach ( $integration->get_form_fields() as $field_def ) {
+				$key               = sanitize_key( $field_def['key'] );
+				$sanitized[ $key ] = sanitize_text_field( wp_unslash( $data[ $key ] ?? '' ) );
+			}
+		}
+
 		// Sanitize field schema (repeatable rows).
 		if ( ! empty( $data['field_schema'] ) && is_array( $data['field_schema'] ) ) {
 			$allowed_types = array( 'text', 'email', 'textarea', 'url', 'number', 'checkbox' );

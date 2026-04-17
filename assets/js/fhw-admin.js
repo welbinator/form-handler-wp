@@ -7,6 +7,8 @@
  * - Test email AJAX request
  * - Delete form confirmation
  * - Clear log confirmation
+ * - Submissions modal
+ * - Integration toggles and remote select population
  *
  * @package Form_Handler_WP
  */
@@ -19,7 +21,7 @@
 	// Tab navigation
 	// -----------------------------------------------------------------------
 	function initTabs() {
-		var $tabs = $( '.fhw-tab-nav a' );
+		const $tabs = $( '.fhw-tab-nav a' );
 
 		$tabs.on( 'click', function () {
 			$tabs.removeClass( 'fhw-tab-active' );
@@ -30,10 +32,10 @@
 	// -----------------------------------------------------------------------
 	// Dynamic field schema rows
 	// -----------------------------------------------------------------------
-	var fieldRowIndex = $( '.fhw-field-row' ).length;
+	let fieldRowIndex = $( '.fhw-field-row' ).length;
 
 	function buildFieldRow( index ) {
-		var typeOptions =
+		const typeOptions =
 			'<option value="text">text</option>' +
 			'<option value="email">email</option>' +
 			'<option value="textarea">textarea</option>' +
@@ -59,8 +61,8 @@
 	}
 
 	function initFieldSchema() {
-		var $container = $( '#fhw-field-rows' );
-		var $addBtn    = $( '#fhw-add-field-btn' );
+		const $container = $( '#fhw-field-rows' );
+		const $addBtn    = $( '#fhw-add-field-btn' );
 
 		if ( ! $container.length ) {
 			return;
@@ -80,16 +82,16 @@
 	// Test email
 	// -----------------------------------------------------------------------
 	function initTestEmail() {
-		var $btn    = $( '#fhw-test-email-btn' );
-		var $input  = $( '#fhw-test-email-address' );
-		var $result = $( '#fhw-test-result' );
+		const $btn    = $( '#fhw-test-email-btn' );
+		const $input  = $( '#fhw-test-email-address' );
+		const $result = $( '#fhw-test-result' );
 
 		if ( ! $btn.length ) {
 			return;
 		}
 
 		$btn.on( 'click', function () {
-			var email = $input.val().trim();
+			const email = $input.val().trim();
 
 			if ( ! email ) {
 				$result
@@ -114,16 +116,12 @@
 						$result
 							.removeClass( 'fhw-error' )
 							.addClass( 'fhw-success' )
-							.text( response.data.message || fhwAdmin.testSuccess );
+							.text( response.data?.message ?? fhwAdmin.testSuccess );
 					} else {
 						$result
 							.removeClass( 'fhw-success' )
 							.addClass( 'fhw-error' )
-							.text(
-								( response.data && response.data.message )
-									? response.data.message
-									: fhwAdmin.testFail
-							);
+							.text( response.data?.message ?? fhwAdmin.testFail );
 					}
 				}
 			).fail( function () {
@@ -142,7 +140,7 @@
 	// -----------------------------------------------------------------------
 	function initDeleteConfirm() {
 		$( document ).on( 'submit', '.fhw-delete-form', function () {
-			return window.confirm( fhwAdmin.confirmDelete );
+			return globalThis.confirm( fhwAdmin.confirmDelete );
 		} );
 	}
 
@@ -151,7 +149,7 @@
 	// -----------------------------------------------------------------------
 	function initClearLogConfirm() {
 		$( document ).on( 'submit', '#fhw-clear-log-form', function () {
-			return window.confirm( fhwAdmin.confirmClearLog );
+			return globalThis.confirm( fhwAdmin.confirmClearLog );
 		} );
 	}
 
@@ -159,8 +157,8 @@
 	// Auto-reply row toggle
 	// -----------------------------------------------------------------------
 	function initAutoreplyToggle() {
-		var $checkbox = $( '#fhw_autoreply_enabled' );
-		var $rows     = $( '.fhw-autoreply-row' );
+		const $checkbox = $( '#fhw_autoreply_enabled' );
+		const $rows     = $( '.fhw-autoreply-row' );
 
 		if ( ! $checkbox.length ) {
 			return;
@@ -182,8 +180,8 @@
 	// Spam filter rules row toggle
 	// -----------------------------------------------------------------------
 	function initSpamFilterToggle() {
-		var $checkbox = $( '#fhw_spam_filter' );
-		var $rows     = $( '.fhw-spam-rules-row' );
+		const $checkbox = $( '#fhw_spam_filter' );
+		const $rows     = $( '.fhw-spam-rules-row' );
 
 		if ( ! $checkbox.length ) {
 			return;
@@ -202,6 +200,84 @@
 	}
 
 	// -----------------------------------------------------------------------
+	// Integration toggle: show/hide per-integration fields
+	// -----------------------------------------------------------------------
+	function initIntegrationToggles() {
+		$( '.fhw-integration-toggle' ).each( function () {
+			const $cb     = $( this );
+			const intId   = $cb.data( 'integration' );
+			const $fields = $( '.fhw-integration-fields[data-integration="' + intId + '"]' );
+
+			function toggleFields() {
+				if ( $cb.is( ':checked' ) ) {
+					$fields.slideDown( 150 );
+					// Populate remote selects on first open.
+					$fields.find( '.fhw-integration-remote-select' ).each( function () {
+						if ( ! $( this ).data( 'loaded' ) ) {
+							loadRemoteOptions( $( this ) );
+						}
+					} );
+				} else {
+					$fields.slideUp( 150 );
+				}
+			}
+
+			toggleFields();
+			$cb.on( 'change', toggleFields );
+		} );
+
+		// If any integration block is already open on load, populate selects.
+		$( '.fhw-integration-fields:visible .fhw-integration-remote-select' ).each( function () {
+			if ( ! $( this ).data( 'loaded' ) ) {
+				loadRemoteOptions( $( this ) );
+			}
+		} );
+	}
+
+	// -----------------------------------------------------------------------
+	// Remote select: fetch options via AJAX
+	// -----------------------------------------------------------------------
+	function loadRemoteOptions( $select ) {
+		if ( $select.data( 'loaded' ) ) {
+			return;
+		}
+		$select.data( 'loaded', true );
+
+		const intId      = $select.data( 'integration' );
+		const remoteKey  = $select.data( 'remote-key' );
+		const savedValue = $select.val(); // pre-filled by PHP if editing
+
+		$select.empty().append( $( '<option>' ).val( '' ).text( '\u2014 Loading\u2026 \u2014' ) );
+
+		$.post(
+			fhwAdmin.ajaxUrl,
+			{
+				action        : 'fhw_get_integration_options',
+				nonce         : fhwAdmin.integrationOptsNonce,
+				integration_id: intId,
+				field_key     : remoteKey,
+			},
+			function ( response ) {
+				$select.empty().append( $( '<option>' ).val( '' ).text( '\u2014 Select \u2014' ) );
+
+				if ( response.success && response.data.options.length ) {
+					$.each( response.data.options, function ( i, opt ) {
+						const $opt = $( '<option>' ).val( opt.value ).text( opt.label );
+						if ( opt.value === savedValue ) {
+							$opt.prop( 'selected', true );
+						}
+						$select.append( $opt );
+					} );
+				} else {
+					$select.append( $( '<option>' ).val( '' ).text( '\u2014 No options found \u2014' ) );
+				}
+			}
+		).fail( function () {
+			$select.empty().append( $( '<option>' ).val( '' ).text( '\u2014 Failed to load \u2014' ) );
+		} );
+	}
+
+	// -----------------------------------------------------------------------
 	// Boot
 	// -----------------------------------------------------------------------
 	$( function () {
@@ -212,6 +288,7 @@
 		initClearLogConfirm();
 		initAutoreplyToggle();
 		initSpamFilterToggle();
+		initIntegrationToggles();
 	} );
 
 } )( jQuery );

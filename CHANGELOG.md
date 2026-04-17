@@ -7,7 +7,70 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased] — v1.2.4
+## [1.3.0] — 2026-04-17
+
+### Added
+- **Integrations system** — Extensible integration framework; new integrations are a single class
+- **Mailchimp integration** — Subscribe form submitters to a Mailchimp audience on successful submission
+  - Field mapping: email, first name, last name, phone, full address (addr1/addr2/city/state/zip/country)
+  - Comma-separated tags (auto-created in Mailchimp if they don't exist)
+  - Opt-in field gate — only subscribe if a named checkbox field equals "1"
+  - Audience dropdown populated live from the Mailchimp API
+  - API key stored encrypted via AES-256
+- **ActiveCampaign integration** — Subscribe form submitters to an ActiveCampaign list on successful submission
+  - Same field mapping, tags, and opt-in gate as Mailchimp
+  - List dropdown populated live from the ActiveCampaign API
+  - API key stored encrypted
+- **Integrations settings tab** — Connect services globally (API keys); shows connected/not-connected status per integration
+- **Per-form Integrations card** — Appears in Add/Edit form when any integration is connected; shows/hides on toggle
+
+### Security
+- Datacenter slug from Mailchimp API key validated against strict regex before URL construction (prevents hostname injection)
+- Mailchimp list ID validated as hex string before URL path use
+- ActiveCampaign API URL enforced as HTTPS in all request paths (prevents credential leakage over HTTP)
+- Tag lengths capped at API limits (Mailchimp: 100 chars, ActiveCampaign: 255 chars)
+- Country codes validated as 2-letter alpha before sending to Mailchimp
+- `FHW_Crypto::decrypt()` called once per function (eliminates double-invocation)
+- Error logging gated behind `WP_DEBUG` to prevent production log pollution
+- Snyk and SonarCloud security scanning added to CI pipeline
+
+### Fixed
+- `Send Test Email` button was broken since v1.1.0 (method was registered as AJAX hook but never implemented)
+- `no_spaces` spam rule was triggering false positives on email addresses and phone numbers
+  - Now skips values containing `@` (emails), `http` (URLs), and all-digit values (phone numbers)
+  - Now checks each field individually instead of only the longest field
+- Unused `$short_circuit` parameter renamed to `$_short_circuit` (intentionally unused filter param)
+- `FHW_Settings` instantiation warning resolved
+
+### Improved
+- **Responsive admin UI** — Settings page fully usable on mobile/narrow screens
+  - Tab nav scrolls horizontally (no wrapping)
+  - All data tables horizontally scrollable
+  - Form fields stack (label above input) on small screens
+  - Submission modal centers on mobile with max-height
+- **Icon buttons** — Edit and Delete in the Registered Forms table now use dashicon pencil/trash icons
+- **"Message ID" → "ID"** in Email Log table header
+- JS modernised: `var` → `let`/`const`, `getAttribute` → `.dataset`, optional chaining, `window` → `globalThis`, deprecated `initCustomEvent` removed
+- Submission modal converted to native `<dialog>` element for better screen reader support
+- WCAG AA contrast ratio fixes in status badges and form status messages
+- Test file repeated literals extracted to class constants
+
+---
+
+## [1.2.4] — 2026-04-16
+
+### Added
+- **Spam reason tracking** — spam-blocked submissions now record which rule triggered the block (e.g. `no_user_agent`, `all_digits`, `buy_link`)
+- Spam rule key shown in the Submissions tab below the amber spam badge
+- Spam rule key also shown in the submission detail modal
+
+### Fixed
+- Spam submissions were being saved with status `sent` instead of `spam` due to missing enum value in `FHW_Submissions::save()`
+- Plugin data (options, DB tables) was being wiped when any copy of the plugin was deleted — `uninstall.php` is now a no-op to preserve data on reinstall/upgrade
+
+---
+
+## [1.2.3] — 2026-04-16
 
 ### Added
 - **Spam reason tracking** — spam-blocked submissions now record which rule triggered the block (e.g. `no_user_agent`, `all_digits`, `buy_link`)

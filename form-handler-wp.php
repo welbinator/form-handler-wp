@@ -3,7 +3,7 @@
  * Plugin Name:       Form Handler WP
  * Plugin URI:        https://github.com/welbinator/form-handler-wp
  * Description:       Secure AJAX form handling with Brevo transactional email. Build your own forms; we handle the sending.
- * Version:           1.2.4
+ * Version:           1.3.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            James Welbes
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'FHW_VERSION', '1.2.4' );
+define( 'FHW_VERSION', '1.3.0' );
 define( 'FHW_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FHW_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'FHW_PLUGIN_FILE', __FILE__ );
@@ -39,6 +39,12 @@ require_once FHW_PLUGIN_DIR . 'includes/class-fhw-submissions.php';
 require_once FHW_PLUGIN_DIR . 'includes/class-fhw-spam-checker.php';
 require_once FHW_PLUGIN_DIR . 'includes/class-fhw-handler.php';
 require_once FHW_PLUGIN_DIR . 'includes/class-fhw-settings.php';
+
+// Integrations.
+require_once FHW_PLUGIN_DIR . 'includes/integrations/interface-fhw-integration.php';
+require_once FHW_PLUGIN_DIR . 'includes/integrations/class-fhw-integration-mailchimp.php';
+require_once FHW_PLUGIN_DIR . 'includes/integrations/class-fhw-integration-activecampaign.php';
+require_once FHW_PLUGIN_DIR . 'includes/integrations/class-fhw-integration-registry.php';
 
 /**
  * Activation hook: create DB table and migrate legacy base64 API key.
@@ -87,7 +93,8 @@ function fhw_init() {
 
 	// Boot settings / admin menu.
 	if ( is_admin() ) {
-		new FHW_Settings();
+		$settings = new FHW_Settings();
+		unset( $settings ); // Side-effects only: registers hooks in constructor.
 	}
 
 	// Register all AJAX hooks for each registered form.
@@ -153,11 +160,11 @@ function fhw_generic_handler() {
 /**
  * Intercept wp_mail() and route through Brevo.
  *
- * @param null|bool $short_circuit Short-circuit return value.
- * @param array     $atts          wp_mail() arguments.
+ * @param null|bool $_short_circuit Short-circuit return value (unused; required by pre_wp_mail filter signature).
+ * @param array     $atts           wp_mail() arguments.
  * @return bool True if sent, false on error.
  */
-function fhw_intercept_wp_mail( $short_circuit, $atts ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundBeforeLastUsed
+function fhw_intercept_wp_mail( $_short_circuit, $atts ) {
 	$to      = isset( $atts['to'] ) ? $atts['to'] : '';
 	$subject = isset( $atts['subject'] ) ? $atts['subject'] : '';
 	$message = isset( $atts['message'] ) ? $atts['message'] : '';

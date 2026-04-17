@@ -28,7 +28,9 @@ class FHW_Settings {
 		add_action( 'admin_post_fhw_delete_submission', array( $this, 'delete_submission' ) );
 		add_action( 'admin_post_fhw_clear_submissions', array( $this, 'clear_submissions' ) );
 		add_action( 'admin_post_fhw_update_form', array( $this, 'update_form' ) );
+		add_action( 'admin_post_fhw_save_integration_settings', array( $this, 'save_integration_settings' ) );
 		add_action( 'wp_ajax_fhw_send_test_email', array( $this, 'ajax_send_test_email' ) );
+		add_action( 'wp_ajax_fhw_get_integration_options', array( $this, 'ajax_get_integration_options' ) );
 	}
 
 	/**
@@ -75,18 +77,19 @@ class FHW_Settings {
 			'fhw-admin',
 			'fhwAdmin',
 			array(
-				'ajaxUrl'         => admin_url( 'admin-ajax.php' ),
-				'testEmailNonce'  => wp_create_nonce( 'fhw_test_email' ),
+				'ajaxUrl'              => admin_url( 'admin-ajax.php' ),
+				'testEmailNonce'       => wp_create_nonce( 'fhw_test_email' ),
+				'integrationOptsNonce' => wp_create_nonce( 'fhw_integration_options' ),
 				/* translators: status message shown in admin */
-				'sending'         => __( 'Sending…', 'form-handler-wp' ),
+				'sending'              => __( 'Sending…', 'form-handler-wp' ),
 				/* translators: status message shown in admin */
-				'testSuccess'     => __( 'Test email sent successfully!', 'form-handler-wp' ),
+				'testSuccess'          => __( 'Test email sent successfully!', 'form-handler-wp' ),
 				/* translators: status message shown in admin */
-				'testFail'        => __( 'Test email failed. Check your API key and sender settings.', 'form-handler-wp' ),
+				'testFail'             => __( 'Test email failed. Check your API key and sender settings.', 'form-handler-wp' ),
 				/* translators: confirmation prompt before deleting a form */
-				'confirmDelete'   => __( 'Are you sure you want to delete this form handler? This cannot be undone.', 'form-handler-wp' ),
+				'confirmDelete'        => __( 'Are you sure you want to delete this form handler? This cannot be undone.', 'form-handler-wp' ),
 				/* translators: confirmation prompt before clearing the log */
-				'confirmClearLog' => __( 'Are you sure you want to clear the entire email log?', 'form-handler-wp' ),
+				'confirmClearLog'      => __( 'Are you sure you want to clear the entire email log?', 'form-handler-wp' ),
 			)
 		);
 	}
@@ -348,6 +351,61 @@ class FHW_Settings {
 			)
 		);
 		exit;
+	}
+
+	/**
+	 * Save global integration settings.
+	 */
+	public function save_integration_settings() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Permission denied.', 'form-handler-wp' ) );
+		}
+
+		check_admin_referer( 'fhw_save_integration_settings', 'fhw_integration_settings_nonce' );
+
+		foreach ( FHW_Integration_Registry::all() as $integration ) {
+			$integration->save_settings( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification -- verified above.
+		}
+
+		// Bust audience/list caches so fresh data loads next time.
+		delete_transient( 'fhw_mailchimp_audiences' );
+		delete_transient( 'fhw_activecampaign_lists' );
+
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'    => 'form-handler-wp',
+					'tab'     => 'integrations',
+					'updated' => '1',
+				),
+				admin_url( 'admin.php' )
+			)
+		);
+		exit;
+	}
+
+	/**
+	 * AJAX: return remote select options for an integration field.
+	 *
+	 * Expects POST: nonce, integration_id, field_key.
+	 */
+	public function ajax_get_integration_options() {
+		check_ajax_referer( 'fhw_integration_options', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'form-handler-wp' ) ), 403 );
+		}
+
+		$integration_id = isset( $_POST['integration_id'] ) ? sanitize_key( wp_unslash( $_POST['integration_id'] ) ) : '';
+		$field_key      = isset( $_POST['field_key'] ) ? sanitize_key( wp_unslash( $_POST['field_key'] ) ) : '';
+
+		$integration = FHW_Integration_Registry::get( $integration_id );
+		if ( ! $integration ) {
+			wp_send_json_error( array( 'message' => __( 'Unknown integration.', 'form-handler-wp' ) ) );
+		}
+
+		$options = $integration->get_remote_options( $field_key );
+		wp_send_json_success( array( 'options' => $options ) );
 	}
 
 	/**
