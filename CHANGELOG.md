@@ -7,6 +7,15 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.3.5] — 2026-04-17
+
+### Fixed
+- **Plugin Checker compliance (round 2)** — two remaining warnings in `class-fhw-submissions.php`
+  - `drop_table()`: added `DirectQuery` ignore (schema change on uninstall; caching not applicable)
+  - `clear_by_form()`: added `NoCaching` ignore and `wp_cache_flush_group()` call after delete
+
+---
+
 ## [1.3.4] — 2026-04-17
 
 ### Fixed
