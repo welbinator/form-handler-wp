@@ -81,7 +81,8 @@ class FHW_Submissions {
 		global $wpdb;
 
 		$table = self::table_name();
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// Schema change on uninstall — direct query required; caching not applicable.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$wpdb->query( "DROP TABLE IF EXISTS {$table}" );
 	}
 
@@ -309,12 +310,16 @@ class FHW_Submissions {
 			return false;
 		}
 
-		$result = $wpdb->delete( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$result = $wpdb->delete(
 			self::table_name(),
 			array( 'action_name' => $action_name ),
 			array( '%s' )
 		);
 
+		if ( false !== $result ) {
+			wp_cache_flush_group( 'fhw_submissions' );
+		}
 		return false !== $result;
 	}
 }
