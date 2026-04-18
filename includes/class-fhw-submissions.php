@@ -148,6 +148,7 @@ class FHW_Submissions {
 			return false;
 		}
 
+		wp_cache_flush_group( 'fhw_submissions' );
 		return $wpdb->insert_id;
 	}
 
@@ -167,9 +168,19 @@ class FHW_Submissions {
 		$limit  = absint( $limit );
 		$offset = absint( $offset );
 
+		// Use a short-lived (single request) cache so paginated admin views don't
+		// hammer the DB on every render, while ensuring the admin always sees
+		// current data (cache is not persisted across requests).
+		$cache_key   = 'fhw_sub_entries_' . md5( $action_name_filter . '_' . $limit . '_' . $offset );
+		$cache_group = 'fhw_submissions';
+		$cached      = wp_cache_get( $cache_key, $cache_group );
+		if ( false !== $cached ) {
+			return $cached;
+		}
+
 		if ( '' !== $action_name_filter ) {
 			$action_name_filter = sanitize_key( $action_name_filter );
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
 					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -181,7 +192,7 @@ class FHW_Submissions {
 				ARRAY_A
 			);
 		} else {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
 					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -193,7 +204,9 @@ class FHW_Submissions {
 			);
 		}
 
-		return is_array( $rows ) ? $rows : array();
+		$result = is_array( $rows ) ? $rows : array();
+		wp_cache_set( $cache_key, $result, $cache_group );
+		return $result;
 	}
 
 	/**
@@ -208,9 +221,16 @@ class FHW_Submissions {
 
 		$table = self::table_name();
 
+		$cache_key   = 'fhw_sub_count_' . md5( $action_name_filter );
+		$cache_group = 'fhw_submissions';
+		$cached      = wp_cache_get( $cache_key, $cache_group );
+		if ( false !== $cached ) {
+			return (int) $cached;
+		}
+
 		if ( '' !== $action_name_filter ) {
 			$action_name_filter = sanitize_key( $action_name_filter );
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 			$count = $wpdb->get_var(
 				$wpdb->prepare(
 					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -219,14 +239,16 @@ class FHW_Submissions {
 				)
 			);
 		} else {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 			$count = $wpdb->get_var(
 				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				"SELECT COUNT(*) FROM {$table}"
 			);
 		}
 
-		return (int) $count;
+		$result = (int) $count;
+		wp_cache_set( $cache_key, $result, $cache_group );
+		return $result;
 	}
 
 	/**
@@ -250,6 +272,9 @@ class FHW_Submissions {
 			array( '%d' )
 		);
 
+		if ( false !== $result ) {
+			wp_cache_flush_group( 'fhw_submissions' );
+		}
 		return false !== $result;
 	}
 
@@ -265,6 +290,7 @@ class FHW_Submissions {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$wpdb->query( "TRUNCATE TABLE {$table}" );
 
+		wp_cache_flush_group( 'fhw_submissions' );
 		return true;
 	}
 

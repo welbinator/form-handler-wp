@@ -7,6 +7,16 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.3.4] — 2026-04-17
+
+### Fixed
+- **Plugin Checker compliance** — resolved all issues flagged by the WordPress Plugin Checker
+  - `tests/_bootstrap.php` and `phpstan-bootstrap.php` now include proper direct file access guards
+  - `FHW_Submissions::get_entries()` and `get_count()` now use `wp_cache_get()`/`wp_cache_set()` to satisfy `WordPress.DB.DirectDatabaseQuery.NoCaching`
+  - Cache is busted via `wp_cache_flush_group()` after every write (insert, delete, truncate)
+
+---
+
 ## [1.3.3] — 2026-04-17
 
 ### Fixed
