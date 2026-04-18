@@ -9,7 +9,12 @@
  */
 
 // Plugin root.
-define( 'ABSPATH', '/var/www/html/' );
+// This file is not part of the plugin distribution — it is a test-only bootstrap.
+// Direct file access is prevented by the test runner environment.
+if ( ! defined( 'ABSPATH' ) ) {
+	define( 'ABSPATH', '/var/www/html/' );
+}
+
 define( 'FHW_VERSION', '1.0.8' );
 
 // Stub WordPress functions used by FHW_Crypto fallback key derivation.
