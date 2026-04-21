@@ -3,7 +3,7 @@
  * Plugin Name:       Form Handler WP
  * Plugin URI:        https://github.com/welbinator/form-handler-wp
  * Description:       Secure AJAX form handling with Brevo transactional email. Build your own forms; we handle the sending.
- * Version:           1.3.5
+ * Version:           1.4.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            James Welbes
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'FHW_VERSION', '1.3.5' );
+define( 'FHW_VERSION', '1.4.0' );
 define( 'FHW_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FHW_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'FHW_PLUGIN_FILE', __FILE__ );
@@ -121,9 +121,20 @@ function fhw_init() {
 
 	// Nonce endpoint: ?fhw_get_nonce=<action_name> returns JSON { nonce: "..." }.
 	// Only issues nonces for registered form actions.
+	// Rate-limited to 30 requests per minute per IP to prevent nonce farming
+	// and to avoid the DB amplifier effect (unauthenticated get_option on every hit).
 	if ( isset( $_GET['fhw_get_nonce'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 		$nonce_action = sanitize_key( wp_unslash( $_GET['fhw_get_nonce'] ) ); // phpcs:ignore WordPress.Security.NonceVerification
 		if ( '' !== $nonce_action ) {
+			// Rate limit: 30 requests per minute per IP.
+			$ip        = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : 'unknown';
+			$rate_key  = 'fhw_nonce_rl_' . md5( $ip );
+			$hit_count = (int) get_transient( $rate_key );
+			if ( $hit_count >= 30 ) {
+				wp_send_json_error( array( 'message' => 'Too many requests.' ), 429 );
+			}
+			set_transient( $rate_key, $hit_count + 1, MINUTE_IN_SECONDS );
+
 			$registry = new FHW_Form_Registry();
 			$form     = $registry->get_form( $nonce_action );
 			if ( $form ) {
@@ -164,7 +175,7 @@ function fhw_generic_handler() {
  *
  * @param null|bool $_short_circuit Short-circuit return value (unused; required by pre_wp_mail filter signature).
  * @param array     $atts           wp_mail() arguments.
- * @return bool True if sent, false on error.
+ * @return bool|null True if sent via Brevo, null to fall through to PHPMailer on error.
  */
 function fhw_intercept_wp_mail( $_short_circuit, $atts ) {
 	$to      = isset( $atts['to'] ) ? $atts['to'] : '';
@@ -219,7 +230,11 @@ function fhw_intercept_wp_mail( $_short_circuit, $atts ) {
 	$logger = new FHW_Logger();
 	if ( is_wp_error( $result ) ) {
 		$logger->log( implode( ',', wp_list_pluck( $recipients, 'email' ) ), $subject, 'failed', $result->get_error_message(), '' );
-		return false;
+		// Return null (not false) so WordPress falls through to PHPMailer as a
+		// fallback. Returning false signals "already handled" and silently drops
+		// the email — WooCommerce order confirmations, 2FA codes, etc. would
+		// never be delivered when Brevo is misconfigured or unreachable.
+		return null;
 	}
 
 	$logger->log( implode( ',', wp_list_pluck( $recipients, 'email' ) ), $subject, 'sent', '', isset( $result['messageId'] ) ? $result['messageId'] : '' );

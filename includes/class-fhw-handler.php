@@ -120,8 +120,22 @@ class FHW_Handler {
 		}
 
 		// Rate limiting.
-		if ( ! empty( $form['rate_limit'] ) && $form['rate_limit'] > 0 ) {
-			$rate_error = $this->check_rate_limit( $action, (int) $form['rate_limit'] );
+		// Rate limiting.
+		// Use the per-form value if set. Fall back to DEFAULT_RATE_LIMIT only
+		// when the field has never been configured (empty/missing). An explicit
+		// 0 means the admin intentionally disabled rate limiting for this form.
+		$configured = isset( $form['rate_limit'] ) ? (int) $form['rate_limit'] : -1;
+		if ( $configured < 0 ) {
+			// Field missing entirely — use default.
+			$rate_limit = self::DEFAULT_RATE_LIMIT;
+		} elseif ( 0 === $configured ) {
+			// Explicitly set to 0 — rate limiting disabled for this form.
+			$rate_limit = 0;
+		} else {
+			$rate_limit = $configured;
+		}
+		if ( $rate_limit > 0 ) {
+			$rate_error = $this->check_rate_limit( $action, $rate_limit );
 			if ( is_wp_error( $rate_error ) ) {
 				wp_send_json_error( array( 'message' => $rate_error->get_error_message() ), 429 );
 			}
@@ -223,8 +237,8 @@ class FHW_Handler {
 		// Fire integrations (Mailchimp, ActiveCampaign, etc.).
 		FHW_Integration_Registry::run_all( $form, $post_fields );
 
-		// Record rate limit hit.
-		if ( ! empty( $form['rate_limit'] ) && $form['rate_limit'] > 0 ) {
+		// Record rate limit hit — only when rate limiting is active for this form.
+		if ( $rate_limit > 0 ) {
 			$this->record_rate_limit( $action );
 		}
 
@@ -282,6 +296,15 @@ class FHW_Handler {
 	}
 
 	/**
+	 * Default rate limit (submissions per hour per IP) when no per-form
+	 * limit is configured. Always enforced — there is no way to disable
+	 * rate limiting entirely.
+	 *
+	 * @var int
+	 */
+	const DEFAULT_RATE_LIMIT = 5;
+
+	/**
 	 * Maximum number of POST fields to include in an email.
 	 *
 	 * Caps the open-ended POST sweep to prevent bots from flooding the
@@ -325,6 +348,11 @@ class FHW_Handler {
 				continue;
 			}
 			if ( ! in_array( $key, $schema_keys, true ) && ! isset( $sanitized[ $key ] ) ) {
+				// Guard against array payloads (e.g. field[]=x&field[]=y) which
+				// would cause sanitize_text_field() to emit a PHP warning.
+				if ( ! is_string( $value ) ) {
+					continue;
+				}
 				$sanitized[ $key ] = sanitize_text_field( wp_unslash( $value ) );
 			}
 		}

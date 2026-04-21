@@ -61,27 +61,27 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 	<?php // Tab nav. ?>
 	<nav class="fhw-tab-nav">
 		<a href="<?php echo esc_url( admin_url( 'admin.php?page=form-handler-wp&tab=brevo' ) ); ?>"
-			class="<?php echo 'brevo' === $current_tab ? 'fhw-tab-active' : ''; ?>">
+			class="<?php echo esc_attr( 'brevo' === $current_tab ? 'fhw-tab-active' : '' ); ?>">
 			<?php esc_html_e( 'Brevo Settings', 'form-handler-wp' ); ?>
 		</a>
 		<a href="<?php echo esc_url( admin_url( 'admin.php?page=form-handler-wp&tab=forms' ) ); ?>"
-			class="<?php echo 'forms' === $current_tab ? 'fhw-tab-active' : ''; ?>">
+			class="<?php echo esc_attr( 'forms' === $current_tab ? 'fhw-tab-active' : '' ); ?>">
 			<?php esc_html_e( 'Registered Forms', 'form-handler-wp' ); ?>
 		</a>
 		<a href="<?php echo esc_url( admin_url( 'admin.php?page=form-handler-wp&tab=submissions' ) ); ?>"
-			class="<?php echo 'submissions' === $current_tab ? 'fhw-tab-active' : ''; ?>">
+			class="<?php echo esc_attr( 'submissions' === $current_tab ? 'fhw-tab-active' : '' ); ?>">
 			<?php esc_html_e( 'Submissions', 'form-handler-wp' ); ?>
 		</a>
 		<a href="<?php echo esc_url( admin_url( 'admin.php?page=form-handler-wp&tab=integrations' ) ); ?>"
-			class="<?php echo 'integrations' === $current_tab ? 'fhw-tab-active' : ''; ?>">
+			class="<?php echo esc_attr( 'integrations' === $current_tab ? 'fhw-tab-active' : '' ); ?>">
 			<?php esc_html_e( 'Integrations', 'form-handler-wp' ); ?>
 		</a>
 		<a href="<?php echo esc_url( admin_url( 'admin.php?page=form-handler-wp&tab=log' ) ); ?>"
-			class="<?php echo 'log' === $current_tab ? 'fhw-tab-active' : ''; ?>">
+			class="<?php echo esc_attr( 'log' === $current_tab ? 'fhw-tab-active' : '' ); ?>">
 			<?php esc_html_e( 'Email Log', 'form-handler-wp' ); ?>
 		</a>
 		<a href="<?php echo esc_url( admin_url( 'admin.php?page=form-handler-wp&tab=help' ) ); ?>"
-			class="<?php echo 'help' === $current_tab ? 'fhw-tab-active' : ''; ?>">
+			class="<?php echo esc_attr( 'help' === $current_tab ? 'fhw-tab-active' : '' ); ?>">
 			<?php esc_html_e( 'How to Use', 'form-handler-wp' ); ?>
 		</a>
 	</nav>
@@ -109,7 +109,7 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 							<input type="password"
 								id="fhw_brevo_api_key"
 								name="fhw_brevo_api_key"
-								value="<?php echo $api_key_set ? '••••••••••••••••' : ''; ?>"
+								value="<?php echo esc_attr( $api_key_set ? '••••••••••••••••' : '' ); ?>"
 								<?php disabled( defined( 'FHW_BREVO_API_KEY' ) ); ?>
 								autocomplete="off"
 								class="regular-text" />
@@ -251,7 +251,7 @@ elseif ( 'forms' === $current_tab ) :
 	</div>
 
 
-	<div id="fhw-add-form-card" class="fhw-card" style="<?php echo $is_editing ? '' : 'display:none;'; ?>">
+	<div id="fhw-add-form-card" class="fhw-card" style="<?php echo esc_attr( $is_editing ? '' : 'display:none;' ); ?>">
 		<h2><?php echo $is_editing ? esc_html__( 'Edit Form Handler', 'form-handler-wp' ) : esc_html__( 'Add New Form Handler', 'form-handler-wp' ); ?></h2>
 
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -368,7 +368,7 @@ elseif ( 'forms' === $current_tab ) :
 						</label>
 					</td>
 				</tr>
-				<tr class="fhw-autoreply-row"<?php echo ( $is_editing && '1' === $editing_form['autoreply_enabled'] ) ? ' style="display:table-row;"' : ''; ?>>
+				<tr class="fhw-autoreply-row"<?php echo esc_attr( ( $is_editing && '1' === $editing_form['autoreply_enabled'] ) ? ' style="display:table-row;"' : '' ); ?>>
 					<th scope="row"><label for="fhw_autoreply_to_field"><?php esc_html_e( 'Submitter Email Field', 'form-handler-wp' ); ?> <span style="color:#d63638;">*</span></label></th>
 					<td>
 						<input type="text" id="fhw_autoreply_to_field" name="autoreply_to_field"
@@ -377,7 +377,7 @@ elseif ( 'forms' === $current_tab ) :
 						<span class="description"><?php esc_html_e( 'The field name that contains the submitter\'s email address.', 'form-handler-wp' ); ?></span>
 					</td>
 				</tr>
-				<tr class="fhw-autoreply-row"<?php echo ( $is_editing && '1' === $editing_form['autoreply_enabled'] ) ? ' style="display:table-row;"' : ''; ?>>
+				<tr class="fhw-autoreply-row"<?php echo esc_attr( ( $is_editing && '1' === $editing_form['autoreply_enabled'] ) ? ' style="display:table-row;"' : '' ); ?>>
 					<th scope="row"><label for="fhw_autoreply_subject"><?php esc_html_e( 'Confirmation Subject', 'form-handler-wp' ); ?></label></th>
 					<td>
 						<input type="text" id="fhw_autoreply_subject" name="autoreply_subject"
@@ -387,7 +387,7 @@ elseif ( 'forms' === $current_tab ) :
 						<span class="description"><?php esc_html_e( 'Supports {field_name} and {site_name} placeholders. Leave blank for a generic default.', 'form-handler-wp' ); ?></span>
 					</td>
 				</tr>
-				<tr class="fhw-autoreply-row"<?php echo ( $is_editing && '1' === $editing_form['autoreply_enabled'] ) ? ' style="display:table-row;"' : ''; ?>>
+				<tr class="fhw-autoreply-row"<?php echo esc_attr( ( $is_editing && '1' === $editing_form['autoreply_enabled'] ) ? ' style="display:table-row;"' : '' ); ?>>
 					<th scope="row"><label for="fhw_autoreply_message"><?php esc_html_e( 'Confirmation Message', 'form-handler-wp' ); ?></label></th>
 					<td>
 						<textarea id="fhw_autoreply_message" name="autoreply_message" rows="4" class="large-text"><?php echo $is_editing ? esc_textarea( $editing_form['autoreply_message'] ) : ''; ?></textarea>
@@ -407,7 +407,7 @@ elseif ( 'forms' === $current_tab ) :
 					<th scope="row"><label for="fhw_rate_limit"><?php esc_html_e( 'Rate Limit', 'form-handler-wp' ); ?></label></th>
 					<td>
 						<input type="number" id="fhw_rate_limit" name="rate_limit"
-							value="<?php echo $is_editing ? esc_attr( (string) $editing_form['rate_limit'] ) : '0'; ?>" min="0" max="999" style="width:80px;" />
+							value="<?php echo $is_editing ? esc_attr( (string) $editing_form['rate_limit'] ) : '5'; ?>" min="0" max="999" style="width:80px;" />
 						<span class="description"><?php esc_html_e( 'Max submissions per IP per hour. Set to 0 to disable.', 'form-handler-wp' ); ?></span>
 					</td>
 				</tr>
@@ -424,7 +424,7 @@ elseif ( 'forms' === $current_tab ) :
 						<span class="description"><?php esc_html_e( 'Blocks common spam patterns. Individual rules can be configured below.', 'form-handler-wp' ); ?></span>
 					</td>
 				</tr>
-				<tr class="form-field fhw-spam-rules-row"<?php echo ( ! $is_editing || '1' === ( $editing_form['spam_filter'] ?? '1' ) ) ? ' style="display:table-row;"' : ''; ?>>
+				<tr class="form-field fhw-spam-rules-row"<?php echo esc_attr( ( ! $is_editing || '1' === ( $editing_form['spam_filter'] ?? '1' ) ) ? ' style="display:table-row;"' : '' ); ?>>
 					<th scope="row"><?php esc_html_e( 'Spam Rules', 'form-handler-wp' ); ?></th>
 					<td>
 						<fieldset>

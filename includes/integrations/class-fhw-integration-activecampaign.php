@@ -25,6 +25,19 @@ class FHW_Integration_ActiveCampaign implements FHW_Integration {
 	 */
 	const CACHE_TTL = 300;
 
+	/**
+	 * Allowed hostname suffixes for the ActiveCampaign API URL.
+	 *
+	 * ActiveCampaign only ever issues accounts on these two domains.
+	 * Restricting to them prevents SSRF via a tampered API URL setting.
+	 *
+	 * @var string[]
+	 */
+	const ALLOWED_API_HOSTS = array(
+		'.api-us1.com',
+		'.activehosted.com',
+	);
+
 	// -----------------------------------------------------------------------
 	// Interface: identity
 	// -----------------------------------------------------------------------
@@ -92,10 +105,14 @@ class FHW_Integration_ActiveCampaign implements FHW_Integration {
 	 * @param array $post Raw POST data (nonce already verified by caller).
 	 */
 	public function save_settings( array $post ): void {
-		// API URL (not sensitive — store plain).
+		// API URL (not sensitive — store plain, but validate first).
 		if ( isset( $post['fhw_activecampaign_api_url'] ) ) {
 			$url = esc_url_raw( wp_unslash( $post['fhw_activecampaign_api_url'] ) );
-			update_option( 'fhw_activecampaign_api_url', rtrim( $url, '/' ) );
+			$url = rtrim( $url, '/' );
+			// Only persist a URL that passes the SSRF allowlist check.
+			if ( '' === $url || $this->is_valid_api_url( $url ) ) {
+				update_option( 'fhw_activecampaign_api_url', $url );
+			}
 		}
 
 		// API key (sensitive — encrypt).
@@ -189,8 +206,8 @@ class FHW_Integration_ActiveCampaign implements FHW_Integration {
 			return array();
 		}
 
-		// Enforce HTTPS before making requests.
-		if ( 0 !== strpos( $api_url, 'https://' ) ) {
+		// Validate URL against SSRF allowlist before making any request.
+		if ( ! $this->is_valid_api_url( $api_url ) ) {
 			return array();
 		}
 
@@ -243,9 +260,9 @@ class FHW_Integration_ActiveCampaign implements FHW_Integration {
 			return;
 		}
 
-		// Enforce HTTPS — never send credentials over plain HTTP.
-		if ( 0 !== strpos( $api_url, 'https://' ) ) {
-			$this->log_error( 'ActiveCampaign: API URL must use HTTPS.' );
+		// Validate URL against SSRF allowlist before making any request.
+		if ( ! $this->is_valid_api_url( $api_url ) ) {
+			$this->log_error( 'ActiveCampaign: API URL failed SSRF allowlist check.' );
 			return;
 		}
 
@@ -468,5 +485,49 @@ class FHW_Integration_ActiveCampaign implements FHW_Integration {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			error_log( '[Form Handler WP] ' . $message );
 		}
+	}
+
+	/**
+	 * Validate that a URL is safe to use as an ActiveCampaign API endpoint.
+	 *
+	 * Rules:
+	 *   - Must use HTTPS.
+	 *   - Hostname must end with one of the ALLOWED_API_HOSTS suffixes.
+	 *   - No user credentials in the URL (no @).
+	 *
+	 * @param string $url URL to validate.
+	 * @return bool
+	 */
+	private function is_valid_api_url( string $url ): bool {
+		if ( '' === $url ) {
+			return false;
+		}
+
+		$parsed = wp_parse_url( $url );
+
+		// Must be HTTPS.
+		if ( empty( $parsed['scheme'] ) || 'https' !== $parsed['scheme'] ) {
+			return false;
+		}
+
+		// Must have a hostname.
+		if ( empty( $parsed['host'] ) ) {
+			return false;
+		}
+
+		// No embedded credentials.
+		if ( ! empty( $parsed['user'] ) || ! empty( $parsed['pass'] ) ) {
+			return false;
+		}
+
+		// Hostname must match an allowed suffix.
+		$host = strtolower( $parsed['host'] );
+		foreach ( self::ALLOWED_API_HOSTS as $suffix ) {
+			if ( str_ends_with( $host, $suffix ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }

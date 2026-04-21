@@ -31,6 +31,7 @@ class FHW_Settings {
 		add_action( 'admin_post_fhw_save_integration_settings', array( $this, 'save_integration_settings' ) );
 		add_action( 'wp_ajax_fhw_send_test_email', array( $this, 'ajax_send_test_email' ) );
 		add_action( 'wp_ajax_fhw_get_integration_options', array( $this, 'ajax_get_integration_options' ) );
+		add_action( 'admin_init', array( $this, 'maybe_migrate_api_key_to_gcm' ) );
 	}
 
 	/**
@@ -114,7 +115,7 @@ class FHW_Settings {
 
 		check_admin_referer( 'fhw_brevo_settings', 'fhw_brevo_nonce' );
 
-		// API key — store AES-256-CBC encrypted.
+		// API key — store AES-256-GCM encrypted (v2 format).
 		if ( isset( $_POST['fhw_brevo_api_key'] ) ) {
 			$raw_key = sanitize_text_field( wp_unslash( $_POST['fhw_brevo_api_key'] ) );
 			if ( '' !== $raw_key && '••••••••••••••••' !== $raw_key ) {
@@ -297,8 +298,11 @@ class FHW_Settings {
 		}
 
 		$registry = new FHW_Form_Registry();
+		// Pass raw $_POST — sanitize_form_data() inside update_form() handles all
+		// unslashing internally. Calling wp_unslash() here caused double-unslashing
+		// for fields that also called wp_unslash() inside sanitize_form_data().
 		// phpcs:ignore WordPress.Security.NonceVerification -- verified above
-		$result = $registry->update_form( $original_action, wp_unslash( $_POST ) );
+		$result = $registry->update_form( $original_action, $_POST );
 
 		if ( is_wp_error( $result ) ) {
 			wp_safe_redirect(
@@ -450,5 +454,30 @@ class FHW_Settings {
 		}
 
 		wp_send_json_success( array( 'message' => __( 'Test email sent successfully!', 'form-handler-wp' ) ) );
+	}
+
+	/**
+	 * Migrate a stored v1 CBC-encrypted API key to v2 GCM on admin_init.
+	 *
+	 * Runs silently on every admin page load but only does real work once —
+	 * after migration the stored value will have the "v2:" prefix and the
+	 * check short-circuits immediately.
+	 */
+	public function maybe_migrate_api_key_to_gcm() {
+		$stored = get_option( 'fhw_brevo_api_key_enc', '' );
+
+		if ( '' === $stored ) {
+			return;
+		}
+
+		// Already v2 GCM — nothing to do.
+		if ( FHW_Crypto::is_legacy_cbc( $stored ) === false ) {
+			return;
+		}
+
+		$migrated = FHW_Crypto::migrate_from_cbc( $stored );
+		if ( false !== $migrated ) {
+			update_option( 'fhw_brevo_api_key_enc', $migrated );
+		}
 	}
 }

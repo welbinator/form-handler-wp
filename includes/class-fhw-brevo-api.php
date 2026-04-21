@@ -165,9 +165,12 @@ class FHW_Brevo_API implements FHW_Mailer {
 			$error_message = sprintf( __( 'Brevo API request failed with status %d.', 'form-handler-wp' ), (int) $status_code );
 		}
 
-		// Log raw error for admins.
-		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-		error_log( 'Form Handler WP — Brevo API error (' . (int) $status_code . '): ' . $error_message );
+		// Log raw error for admins — gated on WP_DEBUG, consistent with the
+		// rest of the plugin's logging approach.
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( 'Form Handler WP — Brevo API error (' . (int) $status_code . '): ' . $error_message );
+		}
 
 		return new WP_Error( 'fhw_api_error', $error_message );
 	}
