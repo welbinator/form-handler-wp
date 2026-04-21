@@ -242,8 +242,7 @@ class FHW_Submissions {
 		} else {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 			$count = $wpdb->get_var(
-				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				"SELECT COUNT(*) FROM {$table}"
+				$wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table )
 			);
 		}
 

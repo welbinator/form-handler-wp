@@ -162,17 +162,27 @@ function fhw_get_latest_github_release() {
 
 	// Prefer the explicitly-uploaded zip asset (correct folder name).
 	$download_url = '';
+	$sha256_url   = '';
 	if ( ! empty( $release['assets'] ) ) {
 		foreach ( $release['assets'] as $asset ) {
-			if (
-				isset( $asset['content_type'], $asset['browser_download_url'] ) &&
-				'application/zip' === $asset['content_type'] &&
-				'' !== $asset['browser_download_url']
-			) {
+			if ( ! isset( $asset['browser_download_url'] ) || '' === $asset['browser_download_url'] ) {
+				continue;
+			}
+			if ( isset( $asset['content_type'] ) && 'application/zip' === $asset['content_type'] && '' === $download_url ) {
 				$download_url = $asset['browser_download_url'];
-				break;
+			}
+			if ( isset( $asset['name'] ) && str_ends_with( $asset['name'], '.sha256' ) && '' === $sha256_url ) {
+				$sha256_url = $asset['browser_download_url'];
 			}
 		}
+	}
+
+	// Require a sha256 asset — no hash means no update (fail closed).
+	if ( '' === $sha256_url ) {
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			error_log( '[Form Handler WP] Update blocked: no .sha256 asset found for release ' . $release['tag_name'] . '.' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		}
+		return false;
 	}
 
 	// Fall back to GitHub's auto-generated source zip.
@@ -184,6 +194,7 @@ function fhw_get_latest_github_release() {
 	$data = array(
 		'version'      => ltrim( $release['tag_name'], 'v' ),
 		'download_url' => esc_url_raw( $download_url ),
+		'sha256_url'   => esc_url_raw( $sha256_url ),
 		'body'         => wp_strip_all_tags( $release['body'] ?? '' ),
 		'published_at' => $release['published_at'] ?? '',
 	);
@@ -213,3 +224,120 @@ function fhw_bust_update_cache( $upgrader, $options ) {
 	}
 }
 add_action( 'upgrader_process_complete', 'fhw_bust_update_cache', 10, 2 );
+
+/**
+ * Verify the SHA-256 checksum of the downloaded package before installation.
+ *
+ * Hooked onto `upgrader_pre_install`. If the hash does not match the
+ * published .sha256 asset, the install is aborted with a WP_Error.
+ *
+ * @param bool|WP_Error $response   Installation response (pass-through).
+ * @param array         $hook_extra Extra data passed by the upgrader.
+ * @return bool|WP_Error
+ */
+function fhw_verify_package_integrity( $response, $hook_extra ) {
+	// Only act on our own plugin update.
+	if (
+		empty( $hook_extra['plugin'] ) ||
+		FHW_PLUGIN_BASENAME !== $hook_extra['plugin']
+	) {
+		return $response;
+	}
+
+	// Bail early if a previous step already errored.
+	if ( is_wp_error( $response ) ) {
+		return $response;
+	}
+
+	$release = fhw_get_latest_github_release();
+	if ( ! $release || empty( $release['sha256_url'] ) ) {
+		return new WP_Error(
+			'fhw_no_checksum',
+			__( 'Form Handler WP update aborted: no integrity checksum available for this release.', 'form-handler-wp' )
+		);
+	}
+
+	// Fetch the expected hash from the .sha256 asset.
+	$hash_response = wp_remote_get(
+		$release['sha256_url'],
+		array(
+			'timeout'    => 10,
+			'user-agent' => 'WordPress/' . get_bloginfo( 'version' ) . '; ' . home_url(),
+		)
+	);
+
+	if ( is_wp_error( $hash_response ) || 200 !== (int) wp_remote_retrieve_response_code( $hash_response ) ) {
+		return new WP_Error(
+			'fhw_checksum_fetch_failed',
+			__( 'Form Handler WP update aborted: could not retrieve integrity checksum.', 'form-handler-wp' )
+		);
+	}
+
+	$expected_hash = trim( wp_remote_retrieve_body( $hash_response ) );
+	if ( ! preg_match( '/^[a-f0-9]{64}$/', $expected_hash ) ) {
+		return new WP_Error(
+			'fhw_checksum_invalid',
+			__( 'Form Handler WP update aborted: integrity checksum is malformed.', 'form-handler-wp' )
+		);
+	}
+
+	// Locate the downloaded package file.
+	global $wp_filesystem;
+	if ( empty( $wp_filesystem ) ) {
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		WP_Filesystem();
+	}
+
+	// WordPress stores the downloaded package path in the upgrader skin.
+	// The most reliable way to get it is via the upgrader's stored result.
+	// We hash the package file directly from the temp location WordPress used.
+	$package_path = '';
+	if ( isset( $GLOBALS['fhw_upgrader_package_path'] ) ) {
+		$package_path = $GLOBALS['fhw_upgrader_package_path'];
+	}
+
+	if ( '' === $package_path || ! file_exists( $package_path ) ) {
+		return new WP_Error(
+			'fhw_package_not_found',
+			__( 'Form Handler WP update aborted: downloaded package could not be located for integrity check.', 'form-handler-wp' )
+		);
+	}
+
+	$actual_hash = hash_file( 'sha256', $package_path );
+	if ( $actual_hash !== $expected_hash ) {
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			error_log( '[Form Handler WP] Integrity check FAILED. Expected: ' . $expected_hash . ' Got: ' . $actual_hash ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		}
+		return new WP_Error(
+			'fhw_checksum_mismatch',
+			__( 'Form Handler WP update aborted: integrity check failed. The package may have been tampered with.', 'form-handler-wp' )
+		);
+	}
+
+	return $response;
+}
+add_filter( 'upgrader_pre_install', 'fhw_verify_package_integrity', 10, 2 );
+
+/**
+ * Capture the downloaded package path before installation begins.
+ *
+ * WordPress doesn't expose the temp file path to upgrader_pre_install,
+ * so we hook upgrader_source_selection (which fires just before pre_install)
+ * to grab it.
+ *
+ * @param string $source        Extracted source directory.
+ * @param string $remote_source Temp path of the downloaded zip.
+ * @param object $upgrader      WP_Upgrader instance.
+ * @param array  $hook_extra    Extra hook data.
+ * @return string
+ */
+function fhw_capture_package_path( $source, $remote_source, $upgrader, $hook_extra ) {
+	if (
+		! empty( $hook_extra['plugin'] ) &&
+		FHW_PLUGIN_BASENAME === $hook_extra['plugin']
+	) {
+		$GLOBALS['fhw_upgrader_package_path'] = $remote_source;
+	}
+	return $source;
+}
+add_filter( 'upgrader_source_selection', 'fhw_capture_package_path', 9, 4 );

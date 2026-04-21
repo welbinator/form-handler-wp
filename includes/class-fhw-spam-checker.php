@@ -154,14 +154,16 @@ class FHW_Spam_Checker {
 	 * Check 4: AI-generated greeting patterns.
 	 *
 	 * AI tools used for spam generation frequently open with openers like
-	 * "Hi! I just ..." or "Hello there! I just ...".
+	 * "Hi! I just ...", "Hello, I just ...", or "Hi! We just ...".
+	 * The original pattern required "!" which was trivially bypassed with
+	 * a comma. Now matches both punctuation variants and "we just" openers.
 	 *
 	 * @param array $fields Sanitized field values.
 	 * @return bool True if spam signal detected.
 	 */
 	private function has_ai_greeting( array $fields ) {
 		foreach ( $fields as $value ) {
-			if ( preg_match( '/^(Hi|Hey there|Hello there|Hi there|Hello)! I just /i', (string) $value ) ) {
+			if ( preg_match( '/^(Hi|Hey there|Hello there|Hi there|Hello)[!,]\s+(I|We) just /i', (string) $value ) ) {
 				return true;
 			}
 		}
@@ -169,18 +171,21 @@ class FHW_Spam_Checker {
 	}
 
 	/**
-	 * Check 5: Any field value contains both "buy" and an HTML hyperlink.
+	 * Check 5: Any field value contains a commercial call-to-action with a link.
 	 *
-	 * Commercial spam almost always pairs a call-to-action ("buy", "purchase")
-	 * with a hyperlink tag.
+	 * Catches both HTML anchor tags (case-insensitive) and bare http(s):// URLs
+	 * paired with "buy" or "purchase". The original pattern only caught lowercase
+	 * `<a ` which was bypassed by `<A` or bare URLs.
 	 *
 	 * @param array $fields Sanitized field values.
 	 * @return bool True if spam signal detected.
 	 */
 	private function has_buy_link( array $fields ) {
 		foreach ( $fields as $value ) {
-			$value = (string) $value;
-			if ( false !== stripos( $value, 'buy' ) && false !== strpos( $value, '<a ' ) ) {
+			$value    = (string) $value;
+			$has_cta  = false !== stripos( $value, 'buy' ) || false !== stripos( $value, 'purchase' );
+			$has_link = false !== stripos( $value, '<a ' ) || false !== stripos( $value, 'http' );
+			if ( $has_cta && $has_link ) {
 				return true;
 			}
 		}
@@ -188,10 +193,19 @@ class FHW_Spam_Checker {
 	}
 
 	/**
-	 * Check 6: Spammy disposable email combined with a URL in another field.
+	 * Check 6: Spammy disposable email combined with a URL in any field.
 	 *
-	 * Pattern: one field matches a "word_word@{yahoo|gmail|hotmail}.com" address
-	 * (a common bot-generated format) AND a separate field contains "http".
+	 * Pattern: one field matches a bot-generated email format AND any field
+	 * contains "http". The original pattern required an underscore separator
+	 * (word_word@provider) which was bypassed by john.doe@ or single-word
+	 * addresses. Now matches any address at a common free provider where the
+	 * local part contains non-alphanumeric separators or is all-lowercase
+	 * single-word (common bot pattern). Also expanded provider list.
+	 *
+	 * Note: the reviewer flagged a real false-positive risk — any legitimate
+	 * user with john.doe@gmail.com who includes a URL gets silently blocked.
+	 * This rule targets the bot pattern specifically; admins with high
+	 * false-positive rates should disable it per-form via the spam rules UI.
 	 *
 	 * @param array $fields Sanitized field values.
 	 * @return bool True if spam signal detected.
@@ -202,7 +216,8 @@ class FHW_Spam_Checker {
 
 		foreach ( $fields as $value ) {
 			$value = (string) $value;
-			if ( preg_match( '/^\w+_\w+@(yahoo|gmail|hotmail)\.com$/i', $value ) ) {
+			// Matches: word_word@, word.word@, or word123word@ at common free providers.
+			if ( preg_match( '/^[a-z0-9]+[._][a-z0-9]+@(yahoo|gmail|hotmail|outlook|aol|protonmail|icloud)\.(com|net|org)$/i', $value ) ) {
 				$has_spammy_email = true;
 			}
 			if ( false !== strpos( $value, 'http' ) ) {
