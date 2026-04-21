@@ -3,7 +3,7 @@
  * Plugin Name:       Form Handler WP
  * Plugin URI:        https://github.com/welbinator/form-handler-wp
  * Description:       Secure AJAX form handling with Brevo transactional email. Build your own forms; we handle the sending.
- * Version:           1.4.0
+ * Version:           1.4.1
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            James Welbes
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'FHW_VERSION', '1.4.0' );
+define( 'FHW_VERSION', '1.4.1' );
 define( 'FHW_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FHW_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'FHW_PLUGIN_FILE', __FILE__ );
@@ -141,7 +141,12 @@ function fhw_init() {
 				$nonce_id = 'fhw_' . $nonce_action . '_nonce';
 				wp_send_json( array( 'nonce' => wp_create_nonce( $nonce_id ) ) );
 			} else {
-				wp_send_json_error( array( 'message' => 'Unknown form action.' ), 404 );
+				// Return 200 with a dummy nonce for unknown slugs.
+				// Returning 404 leaks which slugs are registered (enumeration oracle).
+				// A dummy nonce will always fail wp_verify_nonce() at submission time
+				// so there is no bypass — the status code just no longer reveals
+				// whether the slug exists.
+				wp_send_json( array( 'nonce' => wp_create_nonce( 'fhw_no_such_form_nonce' ) ) );
 			}
 		}
 	}

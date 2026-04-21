@@ -486,6 +486,16 @@ class FHW_Handler {
 			return;
 		}
 
+		// Per-recipient cooldown: one auto-reply per email address per form per hour.
+		// Prevents reputation/credit burn from distributed IP attacks targeting a
+		// single recipient — each address can only receive one auto-reply per hour
+		// regardless of how many IPs submit the form.
+		$cooldown_key = 'fhw_ar_cd_' . md5( $to_email . '_' . ( $form['action_name'] ?? '' ) );
+		if ( get_transient( $cooldown_key ) ) {
+			return;
+		}
+		set_transient( $cooldown_key, 1, HOUR_IN_SECONDS );
+
 		$sender_email = sanitize_email( get_option( 'fhw_sender_email', get_option( 'admin_email' ) ) );
 		$sender_name  = sanitize_text_field( get_option( 'fhw_sender_name', get_bloginfo( 'name' ) ) );
 
