@@ -120,15 +120,25 @@ class FHW_Handler {
 		}
 
 		// Rate limiting.
-		// DEFAULT_RATE_LIMIT is the fallback when no per-form limit is configured.
-		// This ensures rate limiting is always active even if the admin never
-		// touches the setting, preventing open relay / flooding abuse.
-		$rate_limit = ( ! empty( $form['rate_limit'] ) && $form['rate_limit'] > 0 )
-			? (int) $form['rate_limit']
-			: self::DEFAULT_RATE_LIMIT;
-		$rate_error = $this->check_rate_limit( $action, $rate_limit );
-		if ( is_wp_error( $rate_error ) ) {
-			wp_send_json_error( array( 'message' => $rate_error->get_error_message() ), 429 );
+		// Rate limiting.
+		// Use the per-form value if set. Fall back to DEFAULT_RATE_LIMIT only
+		// when the field has never been configured (empty/missing). An explicit
+		// 0 means the admin intentionally disabled rate limiting for this form.
+		$configured = isset( $form['rate_limit'] ) ? (int) $form['rate_limit'] : -1;
+		if ( $configured < 0 ) {
+			// Field missing entirely — use default.
+			$rate_limit = self::DEFAULT_RATE_LIMIT;
+		} elseif ( 0 === $configured ) {
+			// Explicitly set to 0 — rate limiting disabled for this form.
+			$rate_limit = 0;
+		} else {
+			$rate_limit = $configured;
+		}
+		if ( $rate_limit > 0 ) {
+			$rate_error = $this->check_rate_limit( $action, $rate_limit );
+			if ( is_wp_error( $rate_error ) ) {
+				wp_send_json_error( array( 'message' => $rate_error->get_error_message() ), 429 );
+			}
 		}
 
 		// Build subject from template.
@@ -227,8 +237,10 @@ class FHW_Handler {
 		// Fire integrations (Mailchimp, ActiveCampaign, etc.).
 		FHW_Integration_Registry::run_all( $form, $post_fields );
 
-		// Record rate limit hit — always, since rate limiting is always active.
-		$this->record_rate_limit( $action );
+		// Record rate limit hit — only when rate limiting is active for this form.
+		if ( $rate_limit > 0 ) {
+			$this->record_rate_limit( $action );
+		}
 
 		wp_send_json_success(
 			array(
