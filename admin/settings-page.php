@@ -97,6 +97,20 @@ $override     = get_option( 'fhw_override_wp_mail', '0' );
 			</p></div>
 		<?php endif; ?>
 
+		<?php if ( ! defined( 'FHW_ENCRYPTION_KEY' ) ) : ?>
+			<div class="notice notice-warning inline"><p>
+				<?php
+				echo wp_kses(
+					__( '<strong>Recommended:</strong> Define <code>FHW_ENCRYPTION_KEY</code> in your <code>wp-config.php</code> for strongest API key protection. Without it, encryption falls back to WordPress salts &mdash; secure on most installs, but defining your own key is best practice.', 'form-handler-wp' ),
+					array(
+						'strong' => array(),
+						'code'   => array(),
+					)
+				);
+				?>
+			</p></div>
+		<?php endif; ?>
+
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<input type="hidden" name="action" value="fhw_save_brevo_settings" />
 			<?php wp_nonce_field( 'fhw_brevo_settings', 'fhw_brevo_nonce' ); ?>
@@ -497,7 +511,7 @@ elseif ( 'forms' === $current_tab ) :
 							<?php echo esc_html( $integration->get_label() ); ?>
 						</label>
 
-						<div class="fhw-integration-fields" data-integration="<?php echo esc_attr( $int_id ); ?>" style="<?php echo $is_enabled ? '' : 'display:none;'; ?>margin-top:12px;padding-left:24px;">
+						<div class="fhw-integration-fields" data-integration="<?php echo esc_attr( $int_id ); ?>" style="<?php echo esc_attr( $is_enabled ? '' : 'display:none;' ); ?>margin-top:12px;padding-left:24px;">
 							<table class="form-table fhw-form-table" style="margin:0;">
 								<tbody>
 									<?php
