@@ -407,8 +407,8 @@ elseif ( 'forms' === $current_tab ) :
 					<th scope="row"><label for="fhw_rate_limit"><?php esc_html_e( 'Rate Limit', 'form-handler-wp' ); ?></label></th>
 					<td>
 						<input type="number" id="fhw_rate_limit" name="rate_limit"
-							value="<?php echo $is_editing ? esc_attr( (string) $editing_form['rate_limit'] ) : '0'; ?>" min="0" max="999" style="width:80px;" />
-						<span class="description"><?php esc_html_e( 'Max submissions per IP per hour. Set to 0 to disable.', 'form-handler-wp' ); ?></span>
+							value="<?php echo $is_editing ? esc_attr( (string) $editing_form['rate_limit'] ) : '5'; ?>" min="0" max="999" style="width:80px;" />
+						<span class="description"><?php esc_html_e( 'Max submissions per IP per hour. Leave at 0 to use the default (5/hr).', 'form-handler-wp' ); ?></span>
 					</td>
 				</tr>
 				<tr class="form-field">
