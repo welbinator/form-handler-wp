@@ -7,6 +7,34 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.4.1] — 2026-04-21
+
+### Security
+- **Per-recipient auto-reply cooldown** — auto-reply emails are now throttled to one per recipient address per form per hour, regardless of how many IPs submit. Prevents distributed actors from using auto-replies to blast arbitrary email addresses.
+- **Nonce enumeration fix** — the nonce endpoint now returns `200` with a dummy nonce for unknown form slugs instead of `404`. Eliminates the oracle that allowed attackers to enumerate valid form slugs.
+- **Admin notice for missing encryption key** — a notice is shown in wp-admin when `FHW_ENCRYPTION_KEY` is not defined in `wp-config.php`, prompting site owners to add the constant for strongest key protection.
+
+### Fixed
+- Remaining `echo` output in integration fields wrapped in `esc_attr()` for full output escaping compliance.
+
+---
+
+## [1.4.0] — 2026-04-21
+
+### Security
+- **Rate limiting on form submissions** — submissions are now rate-limited per IP by default (5 per hour). A value of `0` disables rate limiting. Default field value in the UI is `5`.
+- **AES-256-GCM encryption** — API keys and secrets are now stored using AES-256-GCM (authenticated encryption) instead of AES-256-CBC. GCM provides both confidentiality and integrity — bit-flip and ciphertext forgery attacks possible with CBC are not possible with GCM. Legacy CBC-encrypted values are still decryptable and migrated automatically on read.
+- **Nonce endpoint rate limiting** — the nonce-dispensing endpoint is now rate-limited to 30 requests per minute per IP to prevent nonce farming and DB amplification attacks.
+- **`pre_wp_mail` fallback fix** — Brevo mailer now returns `null` (not `false`) on failure, allowing WordPress to fall through to PHPMailer. Returning `false` was silently dropping WooCommerce order emails, 2FA codes, and password resets.
+- **SSRF hardening** — all user-configured API URLs are now validated against a hostname allowlist in addition to the HTTPS check. HTTPS alone is insufficient to prevent SSRF.
+- **Release integrity verification** — GitHub release workflow now generates and uploads a SHA-256 checksum alongside the plugin zip. The updater verifies the hash before installing.
+
+### Improved
+- Error logging is now consistently gated behind `WP_DEBUG` across all integration classes.
+- URL construction in all integration classes uses string concatenation with validated path components instead of interpolation.
+
+---
+
 ## [1.3.5] — 2026-04-17
 
 ### Fixed
